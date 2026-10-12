@@ -23,9 +23,9 @@ import { QualifiersPage } from "../features/qualifiers/QualifiersPage";
 import { ModelsPage } from "../features/models/ModelsPage";
 import { DatasourcesPage } from "../features/datasources/DatasourcesPage";
 import {
-  RegistryPage,
-  RegistryDetailPage,
-} from "../features/registry/RegistryPage";
+  ConnectionsPage,
+  ConnectionDetailPage,
+} from "../features/connections/ConnectionsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 
 const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
@@ -37,7 +37,7 @@ const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/calificadores", label: "Calificadores", icon: "check" },
   { path: "/modelos", label: "Modelos", icon: "gen-ai" },
   { path: "/datasources", label: "Datasources", icon: "multiscreen" },
-  { path: "/registry", label: "Registry", icon: "list-view" },
+  { path: "/conexiones", label: "Conexiones", icon: "share" },
   { path: "/configuracion", label: "Configuración", icon: "settings" },
 ];
 
@@ -191,8 +191,8 @@ function Shell() {
             <Route path="/calificadores/:id?" element={<QualifiersPage />} />
             <Route path="/modelos/:id?" element={<ModelsPage />} />
             <Route path="/datasources/:id?" element={<DatasourcesPage />} />
-            <Route path="/registry" element={<RegistryPage />} />
-            <Route path="/registry/:id" element={<RegistryDetailPage />} />
+            <Route path="/conexiones" element={<ConnectionsPage />} />
+            <Route path="/conexiones/:id" element={<ConnectionDetailPage />} />
             <Route path="/configuracion" element={<SettingsPage />} />
             <Route
               path="*"

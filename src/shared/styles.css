@@ -586,25 +586,49 @@ main {
   font-size: 12px;
   margin-bottom: 20px;
 }
-.registry-table {
+.connections-table {
   margin-top: 24px;
 }
-.registry-name-link {
+.connections-name-link {
   font-weight: 650;
 }
-.registry-detail-meta {
+.connections-detail-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 28px;
   margin: 0;
 }
-.registry-detail-meta dt {
+.connections-detail-meta dt {
   font-size: 11px;
   color: var(--muted);
   margin: 0 0 4px;
 }
-.registry-detail-meta dd {
+.connections-detail-meta dd {
   margin: 0;
+  word-break: break-word;
+}
+.connections-section-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.connections-scope-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.connections-scope-list li {
+  margin-bottom: 4px;
+}
+.connections-consent-url {
+  display: inline-block;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.85;
+  cursor: not-allowed;
+  user-select: all;
+  pointer-events: none;
 }
 .form-stack {
   display: flex;
