@@ -629,25 +629,113 @@ main {
 }
 .connections-kind-fieldset {
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 10px;
+  padding: 16px;
   margin: 0;
 }
-.connections-kind-option {
+.connections-kind-legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.connections-kind-hint {
+  margin: 4px 0 14px;
+  font-size: 13px;
+}
+.connections-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 520px) {
+  .connections-kind-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.connections-kind-tile {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 14px;
+  text-align: left;
+  color: inherit;
+  background: #23252a;
+  border: 1px solid #525762;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.connections-kind-tile:hover:not(:disabled) {
+  border-color: #7a8494;
+  background: #282b31;
+}
+.connections-kind-tile.is-selected {
+  border-color: var(--accent);
+  background: #2a3140;
+  box-shadow: 0 0 0 1px rgba(164, 189, 225, 0.35);
+}
+.connections-kind-tile:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.connections-kind-tile-icon {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  justify-content: center;
 }
-.connections-kind-option input {
-  width: auto;
+.connections-kind-tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.connections-kind-tile-title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+}
+.connections-kind-tile-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.connections-kind-tile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.connections-kind-tile-meta code {
+  font-size: 11px;
+  color: #a8adb8;
+}
+.connections-kind-tile-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
 }
 .form-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
-.form-stack label {
+.form-stack > label {
   display: flex;
   flex-direction: column;
   gap: 8px;

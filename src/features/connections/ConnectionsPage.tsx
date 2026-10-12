@@ -30,6 +30,7 @@ import {
   revokeConnection,
 } from "./api";
 import { filterConnections } from "./filter";
+import { KindPickerGrid } from "./KindPickerGrid";
 import type {
   Connection,
   ConnectionKind,
@@ -221,32 +222,24 @@ function CreateConnectionModal({
             />
           </label>
           <fieldset className="connections-kind-fieldset">
-            <legend>
-              Kinds <span className="required">*</span>
+            <legend className="connections-kind-legend">
+              Servicios de Google <span className="required">*</span>
             </legend>
+            <p className="connections-kind-hint muted">
+              Elige al menos uno. Los scopes OAuth se calculan en el servidor según
+              tu selección.
+            </p>
             {loadingKinds ? (
-              <StatusIndicator type="loading">Cargando kinds…</StatusIndicator>
+              <StatusIndicator type="loading">Cargando servicios…</StatusIndicator>
             ) : kinds.length === 0 ? (
               <p className="demo-explainer">No hay kinds disponibles para Google OAuth.</p>
             ) : (
-              <SpaceBetween size="xs">
-                {kinds.map((entry) => (
-                  <label key={entry.kind} className="connections-kind-option">
-                    <input
-                      type="checkbox"
-                      checked={selectedKinds.includes(entry.kind)}
-                      onChange={() => toggleKind(entry.kind)}
-                      disabled={submitting}
-                    />
-                    <span>
-                      <code>{entry.kind}</code>
-                      {!entry.implemented ? (
-                        <Badge color="grey">Sin extractor</Badge>
-                      ) : null}
-                    </span>
-                  </label>
-                ))}
-              </SpaceBetween>
+              <KindPickerGrid
+                kinds={kinds}
+                selected={selectedKinds}
+                disabled={submitting}
+                onToggle={toggleKind}
+              />
             )}
           </fieldset>
         </div>
