@@ -137,4 +137,39 @@ describe("navigable demo", () => {
       screen.getByRole("heading", { name: "Recuerdo no disponible" }),
     ).toBeInTheDocument();
   });
+  it("navigates to Registry, filters the table and opens a detail", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("link", { name: "Registry" }));
+    expect(window.location.hash).toBe("#/registry");
+    expect(
+      screen.getByRole("heading", { name: "Registry" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Registrar · Próximamente" }),
+    ).toBeDisabled();
+    await user.type(
+      screen.getByLabelText("Filtrar recursos del Registry"),
+      "esquema",
+    );
+    expect(
+      screen.getByRole("link", { name: "schema.recuerdo.v1" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "notas-manuales" }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("link", { name: "schema.recuerdo.v1" }),
+    );
+    expect(window.location.hash).toBe("#/registry/schema-recuerdo");
+    expect(
+      screen.getByRole("heading", { name: "schema.recuerdo.v1" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Editar · Próximamente" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Eliminar · Próximamente" }),
+    ).toBeDisabled();
+  });
 });

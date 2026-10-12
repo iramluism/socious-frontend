@@ -22,6 +22,7 @@ Abre http://127.0.0.1:5173. El servidor escucha exclusivamente en loopback y fal
 - `src/features/qualifiers`: catálogo ilustrativo de calificadores.
 - `src/features/models`: catálogo ilustrativo de modelos (enlaces a Hugging Face).
 - `src/features/datasources`: catálogo ilustrativo de fuentes.
+- `src/features/registry`: inventario tipo AWS (tabla Cloudscape) de fuentes indexadas, esquemas e índices de memoria.
 - `src/features/settings`: apariencia y comportamiento de la demo.
 - `src/shared`: encabezados, catálogo reutilizable, formato de fecha y estilos propios.
 
@@ -48,6 +49,7 @@ Patrón: **página → componentes → estado/hooks → funciones puras/datos**.
 3. Aplica filtros de colección/fuente y restaura una consulta del historial.
 4. Busca desde la cabecera o Mis recuerdos, alterna lista/cuadrícula y abre colecciones.
 5. Navega a los catálogos, abre sus detalles y revisa las limitaciones declaradas.
+6. Abre Registry (`#/registry`), filtra la tabla, pagina y entra al detalle de un recurso; las acciones de mutación permanecen deshabilitadas.
 
 Query divide el texto en palabras, elimina tildes y diferencias de mayúsculas, y encuentra recuerdos activos con al menos una palabra completa coincidente en título/contenido. Ordena por número de palabras distintas coincidentes, fecha descendente y finalmente ID. No aplica interpretación semántica ni genera respuestas. El historial guarda las diez últimas consultas diferentes de esta sesión con sus filtros. Los archivados no se incluyen en Query.
 
@@ -66,4 +68,6 @@ npm run build
 
 Vitest + Testing Library comprueban contratos de búsqueda, validación y creación, consulta de recuerdos nuevos, filtros, referencias, restauración de historial, enlaces directos y estados vacíos. La comprobación visual en navegador debe cubrir escritorio y móvil, foco/teclado, menú móvil, rutas y Atrás/Adelante.
 
-No se admite edición, eliminación, archivado nuevo, CRUD de catálogos, descarga de modelos ni conexiones externas. Las acciones futuras se muestran deshabilitadas. Un enlace a un recuerdo creado en otra sesión muestra un estado recuperable de recurso no disponible.
+No se admite edición, eliminación, archivado nuevo, CRUD de catálogos o del Registry, descarga de modelos ni conexiones externas. Las acciones futuras se muestran deshabilitadas. Un enlace a un recuerdo creado en otra sesión muestra un estado recuperable de recurso no disponible.
+
+Registry usa componentes públicos de Cloudscape (`Table`, `Header`, `TextFilter`, `Pagination`) sobre datos de ejemplo en español. Actualizar solo relee el inventario local; no hay red.
