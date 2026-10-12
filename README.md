@@ -1,61 +1,68 @@
 # Socious · Memo
 
-Demo navegable en React y TypeScript: una consola de memoria personal, inspirada en la estructura de AWS y en el tema grafito de PyCharm. Los datos son ficticios y viven únicamente en memoria. No hay APIs, inferencia, autenticación ni almacenamiento persistente.
+Demo navegable en React y TypeScript: consola de memoria personal inspirada en AWS y tema grafito PyCharm. Recuerdos, Query y catálogos usan datos en memoria de sesión. **Conexiones** consume la API real de Memo en Socius (OAuth Google).
 
 ## Arranque
 
 Requisitos: Node.js 20.19+ o 22.12+ y npm 10+.
+
+### Solo demo (recuerdos / Query)
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Abre http://127.0.0.1:5173. El servidor escucha exclusivamente en loopback y falla si el puerto está ocupado. Para revisar la distribución: `npm run build` y `npm run preview` (http://127.0.0.1:4173). Los cambios desaparecen al recargar. No hay remoto Git ni despliegue configurado.
+Abre http://127.0.0.1:5173. El servidor escucha en loopback con `--strictPort`.
+
+### Conexiones contra Socius
+
+1. Arranca el backend en **http://127.0.0.1:8000** (p. ej. `deploy/compose` o `uvicorn` en el repo `socius`).
+2. Configura en el entorno del backend (ver `memo/README.md` en socius):
+   - `MEMO_GOOGLE_OAUTH_CLIENT_ID` / `MEMO_GOOGLE_OAUTH_CLIENT_SECRET`
+   - `MEMO_PUBLIC_BASE_URL` (origen público del callback)
+   - `MEMO_SECRETS_KEY` (cifrado de tokens)
+3. En Google Cloud Console, URI de redirección autorizada:
+
+   `{MEMO_PUBLIC_BASE_URL}/api/v1/memo/oauth/google/callback`
+
+4. Frontend:
+
+```sh
+cp .env.example .env   # opcional; por defecto VITE_MEMO_API_BASE=/api/v1/memo
+npm ci
+npm run dev
+```
+
+Vite hace proxy de `/api` → `http://127.0.0.1:8000`, así el SPA llama rutas relativas sin CORS.
+
+Abre http://127.0.0.1:5173/#/conexiones para listar, crear conexión Google, abrir consentimiento y ver el detalle (sondeo hasta `active`).
+
+Si `npm run dev` falla con `ENOSPC` (límite de watchers):
+
+```sh
+CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true npm run dev
+```
+
+Distribución: `npm run build` y `npm run preview` (http://127.0.0.1:4173).
 
 ## Organización
 
-- `src/app`: composición, rutas hash, shell de la consola y contexto del estado compartido.
-- `src/features/memories`: datos y tipos de recuerdos, captura, listado, detalle y resumen.
-- `src/features/query`: motor léxico puro y pantalla de consulta con historial.
-- `src/features/collections`: listado de colecciones y enlace a sus recuerdos.
-- `src/features/qualifiers`: catálogo ilustrativo de calificadores.
-- `src/features/models`: catálogo ilustrativo de modelos (enlaces a Hugging Face).
-- `src/features/datasources`: catálogo ilustrativo de fuentes.
-- `src/features/connections`: listado tipo AWS (tabla Cloudscape) de conexiones externas con la forma del contrato Connection del backend (datos de ejemplo).
-- `src/features/settings`: apariencia y comportamiento de la demo.
-- `src/shared`: encabezados, catálogo reutilizable, formato de fecha y estilos propios.
+- `src/app`: rutas hash, shell, `DemoProvider` (recuerdos + historial Query).
+- `src/features/memories`, `query`, `collections`, `qualifiers`, `models`, `datasources`, `settings`: demo local.
+- `src/features/connections`: tabla Cloudscape + detalle; cliente en `api.ts` y `src/shared/api/client.ts`.
+- `src/shared`: estilos, encabezados, cliente HTTP Memo.
 
-Patrón: **página → componentes → estado/hooks → funciones puras/datos**. Las páginas consumen `useDemo`; `DemoProvider` permanece montado durante la navegación. La captura agrega un recuerdo al estado, y tanto el resumen como Query derivan sus resultados de ese mismo estado. El router hash permite enlaces directos en hosting estático y los botones Atrás/Adelante del navegador. No se usa Redux ni una capa artificial de repositorios.
+Patrón: página → componentes → hooks/estado → funciones puras o API. Sin Redux.
 
-### Flujo de datos
+### Flujo Conexiones (API)
 
-1. `main.tsx` aplica el tema Cloudscape (`applyTheme` + CSS propio) y monta `App`.
-2. `DemoProvider` carga `initialMemories` y conserva recuerdos e historial de Query en memoria de React.
-3. Las páginas leen y escriben ese estado mediante `useDemo`; la navegación hash no desmonta el proveedor.
-4. Query ejecuta `searchMemories` (función pura) sobre los recuerdos activos de la sesión.
+1. `GET /connections` al cargar la lista; Actualizar repite la petición.
+2. Nueva conexión: `GET /oauth-apps/google_oauth2` (bloquea si `configured: false`), `GET /kinds` para multi-select, `POST /connections`.
+3. Tras crear: navegación al detalle, apertura de `consent_url` en nueva pestaña, sondeo `GET /connections/{id}` cada 2 s hasta `active` / `error` / timeout.
+4. Reautorizar: `POST /connections/{id}/consent`; Revocar: confirmación + `POST /connections/{id}/revoke`.
 
-### Cómo añadir una sección
-
-1. Crea una página en `src/features/<sección>` y documenta con TSDoc su contrato exportado.
-2. Registra la ruta y la entrada de navegación en `src/app/App.tsx`.
-3. Añade pruebas del comportamiento observable en `tests/`.
-4. Eleva estado a `DemoProvider` solo si debe sobrevivir al cambio de página o compartirse entre funcionalidades.
-
-## Qué se puede probar
-
-1. Crea un recuerdo con título, contenido y colección opcional.
-2. Navega a Query, busca una palabra del recuerdo y abre su fuente original.
-3. Aplica filtros de colección/fuente y restaura una consulta del historial.
-4. Busca desde la cabecera o Mis recuerdos, alterna lista/cuadrícula y abre colecciones.
-5. Navega a los catálogos, abre sus detalles y revisa las limitaciones declaradas.
-6. Abre Conexiones (`#/conexiones`), filtra la tabla, pagina y entra al detalle de una conexión; las acciones de mutación permanecen deshabilitadas.
-
-Query divide el texto en palabras, elimina tildes y diferencias de mayúsculas, y encuentra recuerdos activos con al menos una palabra completa coincidente en título/contenido. Ordena por número de palabras distintas coincidentes, fecha descendente y finalmente ID. No aplica interpretación semántica ni genera respuestas. El historial guarda las diez últimas consultas diferentes de esta sesión con sus filtros. Los archivados no se incluyen en Query.
-
-## Diseño y accesibilidad
-
-Cloudscape aporta botones, menús, modales, fuente Open Sans e iconos oficiales del sistema de diseño creado por AWS. Los tokens se ajustan mediante `applyTheme`, la API pública; el CSS propio no depende de clases internas de Cloudscape. Tema oscuro fijo, acentos desaturados, foco visible, etiquetas de formularios y navegación plegable (escritorio y menú móvil). Los modelos son referencias ilustrativas y solo los enlaces explícitos a Hugging Face salen de la demo.
+Los tokens nunca se muestran en la UI.
 
 ## Verificación
 
@@ -66,8 +73,12 @@ npm test
 npm run build
 ```
 
-Vitest + Testing Library comprueban contratos de búsqueda, validación y creación, consulta de recuerdos nuevos, filtros, referencias, restauración de historial, enlaces directos y estados vacíos. La comprobación visual en navegador debe cubrir escritorio y móvil, foco/teclado, menú móvil, rutas y Atrás/Adelante.
+Vitest cubre búsqueda de recuerdos, filtros de conexiones, cliente HTTP (`ApiError`, create/consent/revoke) y navegación a Conexiones con `fetch` mockeado.
 
-No se admite edición, eliminación, archivado nuevo, CRUD de catálogos o de Conexiones, descarga de modelos ni llamadas a la API de Socious. Las acciones futuras se muestran deshabilitadas. Un enlace a un recuerdo creado en otra sesión muestra un estado recuperable de recurso no disponible.
+## Limitaciones
 
-Conexiones usa componentes públicos de Cloudscape (`Table`, `Header`, `TextFilter`, `Pagination`) sobre datos de ejemplo en español alineados con `ConnectionResponse` del backend. Actualizar solo relee el inventario local; no hay red ni secretos en la UI.
+- Sin autenticación de usuario en Socious; API Memo pensada para loopback.
+- Recuerdos y catálogos siguen siendo demo en memoria (recarga = reset).
+- Familia `api_key` no se crea desde la UI (solo Google OAuth en el MVP).
+- Acciones masivas en la tabla de conexiones: próximamente.
+- Sin remoto Git obligatorio ni despliegue incluido en este repo.

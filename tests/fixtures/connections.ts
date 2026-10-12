@@ -1,7 +1,7 @@
-import type { Connection } from "./types";
+import type { Connection } from "../../src/features/connections/types";
 
 /**
- * Sample connections for the Memo demo (Spanish display names).
+ * Sample connections for tests (Spanish display names).
  *
  * Shape mirrors socius ConnectionResponse. Secrets and profile_json are omitted.
  */
@@ -127,5 +127,22 @@ export const connections: Connection[] = [
     requested_kinds: ["fts"],
     created_at: "2026-10-11T10:00:00.000Z",
     modified_at: "2026-10-11T10:00:00.000Z",
+  },
+];
+
+export const googleOAuthKinds = [
+  {
+    kind: "google_gmail" as const,
+    family: "google_oauth2" as const,
+    required_scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
+    implemented: true,
+    config_schema: null,
+  },
+  {
+    kind: "google_drive" as const,
+    family: "google_oauth2" as const,
+    required_scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+    implemented: true,
+    config_schema: null,
   },
 ];

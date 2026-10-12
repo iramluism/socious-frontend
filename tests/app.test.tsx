@@ -1,11 +1,16 @@
-import { beforeEach, describe, it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../src/app/App";
+import { mockMemoConnectionsFetch } from "./memoApiMock";
 beforeEach(() => {
   window.location.hash = "/";
 });
 describe("navigable demo", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("skips to main without changing the hash route", async () => {
     window.location.hash = "/query";
     render(<App />);
@@ -136,6 +141,8 @@ describe("navigable demo", () => {
     ).toBeInTheDocument();
   });
   it("navigates to Conexiones, filters the table and opens a detail", async () => {
+    mockMemoConnectionsFetch();
+
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("link", { name: "Conexiones" }));
@@ -143,13 +150,17 @@ describe("navigable demo", () => {
     expect(
       screen.getByRole("heading", { name: "Conexiones" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Nueva conexión · Próximamente" }),
-    ).toBeDisabled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Nueva conexión" }),
+      ).toBeEnabled(),
+    );
     await user.type(screen.getByLabelText("Filtrar conexiones"), "gmail");
-    expect(
-      screen.getByRole("link", { name: "Gmail personal" }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", { name: "Gmail personal" }),
+      ).toBeInTheDocument(),
+    );
     expect(
       screen.queryByRole("link", { name: "Drive de trabajo" }),
     ).not.toBeInTheDocument();
@@ -157,14 +168,12 @@ describe("navigable demo", () => {
     expect(window.location.hash).toBe(
       "#/conexiones/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     );
-    expect(
-      screen.getByRole("heading", { name: "Gmail personal" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Reautorizar · Próximamente" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Revocar · Próximamente" }),
-    ).toBeDisabled();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "Gmail personal" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Reautorizar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Revocar" })).toBeEnabled();
   });
 });

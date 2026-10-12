@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { connections } from "../src/features/connections/data";
+import { connections } from "./fixtures/connections";
 import {
   filterConnections,
   normalizeConnectionText,

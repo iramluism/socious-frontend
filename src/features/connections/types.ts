@@ -27,10 +27,9 @@ export type ConnectionKind =
   | "fts";
 
 /**
- * Safe ConnectionResponse-shaped sample for the Memo demo.
+ * Safe ConnectionResponse from the Memo API.
  *
  * Mirrors socius ``ConnectionResponse``: no encrypted_secrets or profile_json.
- * Values are sample-only; nothing is persisted or fetched remotely.
  */
 export interface Connection {
   id: string;
@@ -44,4 +43,34 @@ export interface Connection {
   requested_kinds: ConnectionKind[];
   created_at: string;
   modified_at: string;
+}
+
+/** Body for ``POST /connections`` (mirrors socius ``CreateConnectionRequest``). */
+export interface CreateConnectionRequest {
+  family: ConnectionFamily;
+  display_name: string;
+  for_kinds: ConnectionKind[];
+}
+
+/** Response from ``POST /connections/{id}/consent``. */
+export interface ConsentUrlResponse {
+  consent_url: string;
+}
+
+/** Masked OAuth app status from ``GET /oauth-apps/{family}``. */
+export interface OAuthAppResponse {
+  family: ConnectionFamily;
+  redirect_uri: string;
+  client_id_masked: string | null;
+  client_secret_masked: string | null;
+  configured: boolean;
+}
+
+/** Catalog entry from ``GET /kinds``. */
+export interface KindResponse {
+  kind: ConnectionKind;
+  family: ConnectionFamily;
+  required_scopes: string[];
+  implemented: boolean;
+  config_schema: Record<string, unknown> | null;
 }
