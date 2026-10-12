@@ -14,9 +14,7 @@ describe("navigable demo", () => {
       .click(screen.getByRole("link", { name: "Saltar al contenido" }));
     expect(window.location.hash).toBe("#/query");
     expect(screen.getByRole("main")).toHaveFocus();
-    expect(
-      screen.getByRole("heading", { name: "Query" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Query" })).toBeInTheDocument();
   });
   it("validates creation and makes new content searchable with source references", async () => {
     const user = userEvent.setup();
@@ -158,9 +156,7 @@ describe("navigable demo", () => {
     expect(
       screen.queryByRole("link", { name: "notas-manuales" }),
     ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("link", { name: "schema.recuerdo.v1" }),
-    );
+    await user.click(screen.getByRole("link", { name: "schema.recuerdo.v1" }));
     expect(window.location.hash).toBe("#/registry/schema-recuerdo");
     expect(
       screen.getByRole("heading", { name: "schema.recuerdo.v1" }),

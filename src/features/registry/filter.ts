@@ -14,10 +14,7 @@ import type { RegistryItem } from "./types";
  *     Lowercased string without combining diacritical marks.
  */
 export function normalizeRegistryText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLocaleLowerCase("es");
+  return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es");
 }
 
 /**

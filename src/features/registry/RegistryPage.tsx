@@ -227,102 +227,104 @@ export function RegistryPage() {
         recursos no está disponible todavía.
       </p>
       <div className="registry-table">
-      <Table
-        trackBy="id"
-        columnDefinitions={columnDefinitions}
-        items={pageItems}
-        loadingText="Cargando recursos"
-        selectionType="multi"
-        selectedItems={selectedItems}
-        onSelectionChange={({ detail }) =>
-          setSelectedItems([...detail.selectedItems])
-        }
-        ariaLabels={{
-          selectionGroupLabel: "Selección de recursos del Registry",
-          allItemsSelectionLabel: () => "Seleccionar todos los recursos visibles",
-          itemSelectionLabel: (_data, item) => `Seleccionar ${item.name}`,
-          tableLabel: "Registry",
-        }}
-        header={
-          <Header
-            variant="h2"
-            counter={counter}
-            description="Recursos de ejemplo del espacio Memo. Las acciones de mutación están deshabilitadas."
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  iconName="refresh"
-                  ariaLabel="Actualizar lista desde datos de ejemplo"
-                  onClick={() => {
-                    setItems([...registryItems]);
-                    setSelectedItems([]);
-                    setCurrentPageIndex(1);
-                  }}
-                >
-                  Actualizar
-                </Button>
-                <ButtonDropdown
-                  items={[
-                    {
-                      id: "bulk-delete",
-                      text: "Eliminar seleccionados · Próximamente",
-                      disabled: true,
-                    },
-                    {
-                      id: "bulk-edit",
-                      text: "Editar seleccionados · Próximamente",
-                      disabled: true,
-                    },
-                  ]}
-                  disabled={selectedItems.length === 0}
-                >
-                  Acciones
-                </ButtonDropdown>
-                <Button disabled variant="primary">
-                  Registrar · Próximamente
-                </Button>
-              </SpaceBetween>
-            }
-          >
-            Recursos
-          </Header>
-        }
-        filter={
-          <TextFilter
-            filteringText={filteringText}
-            filteringPlaceholder="Buscar por nombre, tipo, estado, propietario o descripción"
-            filteringAriaLabel="Filtrar recursos del Registry"
-            filteringClearAriaLabel="Borrar filtro del Registry"
-            countText={
-              filteringText.trim()
-                ? `${filtered.length} ${filtered.length === 1 ? "coincidencia" : "coincidencias"}`
-                : undefined
-            }
-            onChange={({ detail }) => {
-              setFilteringText(detail.filteringText);
-              setCurrentPageIndex(1);
-              setSelectedItems([]);
-            }}
-          />
-        }
-        pagination={
-          <Pagination
-            currentPageIndex={safePage}
-            pagesCount={pagesCount}
-            ariaLabels={{
-              nextPageLabel: "Página siguiente",
-              previousPageLabel: "Página anterior",
-              pageLabel: (pageNumber) => `Página ${pageNumber} de ${pagesCount}`,
-            }}
-            onChange={({ detail }) =>
-              setCurrentPageIndex(detail.currentPageIndex)
-            }
-          />
-        }
-        empty={empty}
-        stickyHeader
-        resizableColumns
-      />
+        <Table
+          trackBy="id"
+          columnDefinitions={columnDefinitions}
+          items={pageItems}
+          loadingText="Cargando recursos"
+          selectionType="multi"
+          selectedItems={selectedItems}
+          onSelectionChange={({ detail }) =>
+            setSelectedItems([...detail.selectedItems])
+          }
+          ariaLabels={{
+            selectionGroupLabel: "Selección de recursos del Registry",
+            allItemsSelectionLabel: () =>
+              "Seleccionar todos los recursos visibles",
+            itemSelectionLabel: (_data, item) => `Seleccionar ${item.name}`,
+            tableLabel: "Registry",
+          }}
+          header={
+            <Header
+              variant="h2"
+              counter={counter}
+              description="Recursos de ejemplo del espacio Memo. Las acciones de mutación están deshabilitadas."
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    iconName="refresh"
+                    ariaLabel="Actualizar lista desde datos de ejemplo"
+                    onClick={() => {
+                      setItems([...registryItems]);
+                      setSelectedItems([]);
+                      setCurrentPageIndex(1);
+                    }}
+                  >
+                    Actualizar
+                  </Button>
+                  <ButtonDropdown
+                    items={[
+                      {
+                        id: "bulk-delete",
+                        text: "Eliminar seleccionados · Próximamente",
+                        disabled: true,
+                      },
+                      {
+                        id: "bulk-edit",
+                        text: "Editar seleccionados · Próximamente",
+                        disabled: true,
+                      },
+                    ]}
+                    disabled={selectedItems.length === 0}
+                  >
+                    Acciones
+                  </ButtonDropdown>
+                  <Button disabled variant="primary">
+                    Registrar · Próximamente
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              Recursos
+            </Header>
+          }
+          filter={
+            <TextFilter
+              filteringText={filteringText}
+              filteringPlaceholder="Buscar por nombre, tipo, estado, propietario o descripción"
+              filteringAriaLabel="Filtrar recursos del Registry"
+              filteringClearAriaLabel="Borrar filtro del Registry"
+              countText={
+                filteringText.trim()
+                  ? `${filtered.length} ${filtered.length === 1 ? "coincidencia" : "coincidencias"}`
+                  : undefined
+              }
+              onChange={({ detail }) => {
+                setFilteringText(detail.filteringText);
+                setCurrentPageIndex(1);
+                setSelectedItems([]);
+              }}
+            />
+          }
+          pagination={
+            <Pagination
+              currentPageIndex={safePage}
+              pagesCount={pagesCount}
+              ariaLabels={{
+                nextPageLabel: "Página siguiente",
+                previousPageLabel: "Página anterior",
+                pageLabel: (pageNumber) =>
+                  `Página ${pageNumber} de ${pagesCount}`,
+              }}
+              onChange={({ detail }) =>
+                setCurrentPageIndex(detail.currentPageIndex)
+              }
+            />
+          }
+          empty={empty}
+          stickyHeader
+          resizableColumns
+        />
       </div>
     </>
   );
