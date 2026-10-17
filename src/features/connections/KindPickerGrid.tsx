@@ -10,27 +10,31 @@ export function KindPickerGrid({
   kinds,
   selected,
   disabled,
+  isKindDisabled,
   onToggle,
 }: {
   kinds: KindResponse[];
   selected: ConnectionKind[];
   disabled?: boolean;
+  /** When true, the kind tile cannot be selected (e.g. extractor not implemented). */
+  isKindDisabled?: (entry: KindResponse) => boolean;
   onToggle: (kind: ConnectionKind) => void;
 }) {
   return (
     <div className="connections-kind-grid" role="group" aria-label="Kinds de Google">
       {kinds.map((entry) => {
         const isSelected = selected.includes(entry.kind);
+        const tileDisabled = disabled || (isKindDisabled?.(entry) ?? false);
         const meta = KIND_PRESENTATION[entry.kind];
         return (
           <button
             key={entry.kind}
             type="button"
             className={`connections-kind-tile${isSelected ? " is-selected" : ""}${
-              disabled ? " is-disabled" : ""
+              tileDisabled ? " is-disabled" : ""
             }`}
             aria-pressed={isSelected}
-            disabled={disabled}
+            disabled={tileDisabled}
             onClick={() => onToggle(entry.kind)}
           >
             <span className="connections-kind-tile-icon">

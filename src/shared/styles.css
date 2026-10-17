@@ -1139,3 +1139,114 @@ main {
 .sidebar {
   overflow-y: auto;
 }
+
+.drive-browse-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .drive-browse-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.drive-browse-panel {
+  border: 1px solid rgba(164, 189, 225, 0.25);
+  border-radius: 8px;
+  padding: 14px;
+  min-height: 200px;
+}
+.drive-browse-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.drive-browse-breadcrumbs {
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+}
+.drive-browse-crumb {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+.drive-browse-crumb:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.drive-browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.drive-browse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.drive-browse-open {
+  flex: 1;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.drive-browse-open:hover:not(:disabled) {
+  border-color: rgba(164, 189, 225, 0.35);
+}
+.drive-browse-selected {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.drive-browse-selected li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.drive-browse-selected code {
+  font-size: 11px;
+  color: #a8adb8;
+}
+.drive-browse-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.drive-browse-manual {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.drive-browse-manual input {
+  flex: 1;
+}
+.ds-connection-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  flex: 1;
+}

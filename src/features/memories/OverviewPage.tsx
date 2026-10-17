@@ -98,7 +98,7 @@ export function OverviewPage() {
             {[
               ["calificadores", "Calificadores", "Criterios de evaluación"],
               ["modelos", "Modelos", "Catálogo de Hugging Face"],
-              ["datasources", "Datasources", "Fuentes de información"],
+              ["datasources", "Fuentes de datos", "Fuentes de información"],
             ].map(([route, title, description]) => (
               <Link key={route} to={`/${route}`}>
                 <span>

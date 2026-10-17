@@ -21,6 +21,8 @@ import { QueryPage } from "../features/query/QueryPage";
 import { CollectionsPage } from "../features/collections/CollectionsPage";
 import { QualifiersPage } from "../features/qualifiers/QualifiersPage";
 import { ModelsPage } from "../features/models/ModelsPage";
+import { DataSourceDetailPage } from "../features/datasources/DataSourceDetailPage";
+import { DataSourceWizardPage } from "../features/datasources/DataSourceWizardPage";
 import { DatasourcesPage } from "../features/datasources/DatasourcesPage";
 import {
   ConnectionsPage,
@@ -36,7 +38,7 @@ const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/archivados", label: "Archivados", icon: "folder" },
   { path: "/calificadores", label: "Calificadores", icon: "check" },
   { path: "/modelos", label: "Modelos", icon: "gen-ai" },
-  { path: "/datasources", label: "Datasources", icon: "multiscreen" },
+  { path: "/datasources", label: "Fuentes de datos", icon: "multiscreen" },
   { path: "/conexiones", label: "Conexiones", icon: "share" },
   { path: "/configuracion", label: "Configuración", icon: "settings" },
 ];
@@ -190,7 +192,9 @@ function Shell() {
             <Route path="/colecciones" element={<CollectionsPage />} />
             <Route path="/calificadores/:id?" element={<QualifiersPage />} />
             <Route path="/modelos/:id?" element={<ModelsPage />} />
-            <Route path="/datasources/:id?" element={<DatasourcesPage />} />
+            <Route path="/datasources" element={<DatasourcesPage />} />
+            <Route path="/datasources/nueva" element={<DataSourceWizardPage />} />
+            <Route path="/datasources/:id" element={<DataSourceDetailPage />} />
             <Route path="/conexiones" element={<ConnectionsPage />} />
             <Route path="/conexiones/:id" element={<ConnectionDetailPage />} />
             <Route path="/configuracion" element={<SettingsPage />} />
