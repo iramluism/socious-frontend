@@ -19,7 +19,10 @@ import {
 } from "../features/memories/MemoriesPage";
 import { QueryPage } from "../features/query/QueryPage";
 import { CollectionsPage } from "../features/collections/CollectionsPage";
-import { QualifiersPage } from "../features/qualifiers/QualifiersPage";
+import {
+  QualifierDetailPage,
+  QualifiersPage,
+} from "../features/qualifiers/QualifiersPage";
 import { ModelsPage } from "../features/models/ModelsPage";
 import { DataSourceDetailPage } from "../features/datasources/DataSourceDetailPage";
 import { DataSourceWizardPage } from "../features/datasources/DataSourceWizardPage";
@@ -190,7 +193,8 @@ function Shell() {
             <Route path="/archivados" element={<MemoriesPage archived />} />
             <Route path="/query" element={<QueryPage />} />
             <Route path="/colecciones" element={<CollectionsPage />} />
-            <Route path="/calificadores/:id?" element={<QualifiersPage />} />
+            <Route path="/calificadores" element={<QualifiersPage />} />
+            <Route path="/calificadores/:id" element={<QualifierDetailPage />} />
             <Route path="/modelos/:id?" element={<ModelsPage />} />
             <Route path="/datasources" element={<DatasourcesPage />} />
             <Route path="/datasources/nueva" element={<DataSourceWizardPage />} />

@@ -730,6 +730,82 @@ main {
   font-weight: 700;
   color: var(--accent);
 }
+.qualifier-label-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qualifier-label-legend {
+  font-size: 12px;
+}
+.qualifier-label-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.qualifier-label-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.qualifier-label-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.qualifier-label-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #33363d;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.qualifier-label-remove {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  padding: 0;
+  line-height: 1;
+  width: auto;
+}
+.qualifier-label-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.qualifier-label-add label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.qualifier-label-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qualifier-label-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.form-error {
+  margin: 0;
+  color: #f0b7b7;
+  font-size: 12px;
+}
 .form-stack {
   display: flex;
   flex-direction: column;

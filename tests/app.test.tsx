@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../src/app/App";
-import { mockMemoConnectionsFetch } from "./memoApiMock";
+import {
+  mockMemoClassifiersFetch,
+  mockMemoConnectionsFetch,
+} from "./memoApiMock";
 beforeEach(() => {
   window.location.hash = "/";
 });
@@ -175,5 +178,45 @@ describe("navigable demo", () => {
     );
     expect(screen.getByRole("button", { name: "Reautorizar" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Revocar" })).toBeEnabled();
+  });
+
+  it("creates a qualifier with custom labels from the same form", async () => {
+    mockMemoClassifiersFetch();
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("link", { name: "Calificadores" }));
+    expect(window.location.hash).toBe("#/calificadores");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Nuevo calificador" }),
+      ).toBeEnabled(),
+    );
+    expect(screen.getByRole("link", { name: "Ámbito" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Nuevo calificador" }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Crear calificador" }),
+    );
+    expect(within(dialog).getByText(/Escribe un nombre/)).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText(/Nombre/), "Prioridad");
+    await user.type(within(dialog).getByLabelText("Nuevo label"), "Alta");
+    await user.click(within(dialog).getByRole("button", { name: "Añadir label" }));
+    await user.type(within(dialog).getByLabelText("Nuevo label"), "Baja");
+    await user.click(within(dialog).getByRole("button", { name: "Añadir label" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Crear calificador" }),
+    );
+    await waitFor(() =>
+      expect(window.location.hash).toBe("#/calificadores/3"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "Prioridad" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Alta")).toBeInTheDocument();
+    expect(screen.getByText("Baja")).toBeInTheDocument();
   });
 });

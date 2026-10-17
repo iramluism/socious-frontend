@@ -1,6 +1,6 @@
 # Socious · Memo
 
-Demo navegable en React y TypeScript: consola de memoria personal inspirada en AWS y tema grafito PyCharm. Recuerdos, Query y catálogos usan datos en memoria de sesión. **Conexiones** consume la API real de Memo en Socius (OAuth Google).
+Demo navegable en React y TypeScript: consola de memoria personal inspirada en AWS y tema grafito PyCharm. Recuerdos, Query y catálogos usan datos en memoria de sesión. **Conexiones**, **Fuentes de datos** y **Calificadores** consumen la API real de Memo en Socius.
 
 ## Arranque
 
@@ -49,8 +49,8 @@ Distribución: `npm run build` y `npm run preview` (http://127.0.0.1:4173).
 ## Organización
 
 - `src/app`: rutas hash, shell, `DemoProvider` (recuerdos + historial Query).
-- `src/features/memories`, `query`, `collections`, `qualifiers`, `models`, `datasources`, `settings`: demo local.
-- `src/features/connections`: tabla Cloudscape + detalle; cliente en `api.ts` y `src/shared/api/client.ts`.
+- `src/features/memories`, `query`, `collections`, `models`, `settings`: demo local.
+- `src/features/connections`, `datasources`, `qualifiers`: tabla/detalle Cloudscape contra la API Memo (`api.ts` + `src/shared/api/client.ts`).
 - `src/shared`: estilos, encabezados, cliente HTTP Memo.
 
 Patrón: página → componentes → hooks/estado → funciones puras o API. Sin Redux.
@@ -64,6 +64,13 @@ Patrón: página → componentes → hooks/estado → funciones puras o API. Sin
 
 Los tokens nunca se muestran en la UI.
 
+### Flujo Calificadores (API)
+
+1. `GET /classifiers` al cargar la lista; Actualizar repite la petición.
+2. Nuevo calificador: un solo formulario con nombre, descripción opcional y al menos dos labels; `POST /classifiers` y luego `POST /classifiers/{id}/labels` por cada label.
+3. Detalle: `GET /classifiers` + `GET /classifiers/{id}/labels` (no hay GET por id). Se pueden añadir labels, activar/desactivar y borrar los que no estén `used`.
+4. La calificación zero-shot corre en la siguiente ingesta o captura; no hay recálculo de recuerdos ya indexados.
+
 ## Verificación
 
 ```sh
@@ -73,12 +80,12 @@ npm test
 npm run build
 ```
 
-Vitest cubre búsqueda de recuerdos, filtros de conexiones, cliente HTTP (`ApiError`, create/consent/revoke) y navegación a Conexiones con `fetch` mockeado.
+Vitest cubre búsqueda de recuerdos, filtros de conexiones y calificadores, cliente HTTP (`ApiError`, create/consent/revoke y classifiers/labels) y navegación a Conexiones y Calificadores con `fetch` mockeado.
 
 ## Limitaciones
 
 - Sin autenticación de usuario en Socious; API Memo pensada para loopback.
-- Recuerdos y catálogos siguen siendo demo en memoria (recarga = reset).
+- Recuerdos, colecciones y el catálogo de modelos siguen siendo demo en memoria (recarga = reset).
 - Familia `api_key` no se crea desde la UI (solo Google OAuth en el MVP).
 - Acciones masivas en la tabla de conexiones: próximamente.
 - Sin remoto Git obligatorio ni despliegue incluido en este repo.
