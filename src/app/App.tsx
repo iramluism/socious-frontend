@@ -13,12 +13,7 @@ import Icon from "@cloudscape-design/components/icon";
 import type { IconProps } from "@cloudscape-design/components/icon";
 import { DemoProvider } from "./DemoContext";
 import { OverviewPage } from "../features/memories/OverviewPage";
-import {
-  MemoriesPage,
-  MemoryDetailPage,
-} from "../features/memories/MemoriesPage";
 import { QueryPage } from "../features/query/QueryPage";
-import { CollectionsPage } from "../features/collections/CollectionsPage";
 import {
   QualifierDetailPage,
   QualifiersPage,
@@ -35,10 +30,7 @@ import { SettingsPage } from "../features/settings/SettingsPage";
 
 const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/", label: "Resumen", icon: "grid-view" },
-  { path: "/recuerdos", label: "Mis recuerdos", icon: "file" },
   { path: "/query", label: "Query", icon: "search" },
-  { path: "/colecciones", label: "Colecciones", icon: "folder" },
-  { path: "/archivados", label: "Archivados", icon: "folder" },
   { path: "/calificadores", label: "Calificadores", icon: "check" },
   { path: "/modelos", label: "Modelos", icon: "gen-ai" },
   { path: "/datasources", label: "Fuentes de datos", icon: "multiscreen" },
@@ -101,7 +93,7 @@ function Shell() {
           className="global-search"
           onSubmit={(e) => {
             e.preventDefault();
-            navigate(`/recuerdos?q=${encodeURIComponent(search)}`);
+            navigate(`/query?q=${encodeURIComponent(search)}`);
             setMobileOpen(false);
           }}
         >
@@ -148,9 +140,9 @@ function Shell() {
             {navigation.map((item, index) => (
               <div
                 key={item.path}
-                className={index === 5 || index === 9 ? "nav-group-start" : ""}
+                className={index === 2 || index === 6 ? "nav-group-start" : ""}
               >
-                {index === 5 && (
+                {index === 2 && (
                   <p className="nav-caption">ESPACIO DE TRABAJO</p>
                 )}
                 <NavLink
@@ -188,11 +180,7 @@ function Shell() {
           </div>
           <Routes>
             <Route path="/" element={<OverviewPage />} />
-            <Route path="/recuerdos" element={<MemoriesPage />} />
-            <Route path="/recuerdos/:id" element={<MemoryDetailPage />} />
-            <Route path="/archivados" element={<MemoriesPage archived />} />
             <Route path="/query" element={<QueryPage />} />
-            <Route path="/colecciones" element={<CollectionsPage />} />
             <Route path="/calificadores" element={<QualifiersPage />} />
             <Route path="/calificadores/:id" element={<QualifierDetailPage />} />
             <Route path="/modelos/:id?" element={<ModelsPage />} />
@@ -214,7 +202,7 @@ function Shell() {
           </Routes>
           <footer className="content-footer">
             <span>Socious / Memo</span>
-            <span>Demo navegable · Sin conexión a servicios</span>
+            <span>Memo conectado a la API local</span>
           </footer>
         </main>
       </div>

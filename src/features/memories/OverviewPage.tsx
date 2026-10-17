@@ -1,104 +1,120 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import Alert from "@cloudscape-design/components/alert";
 import Button from "@cloudscape-design/components/button";
 import Icon from "@cloudscape-design/components/icon";
-import { useDemo } from "../../app/DemoContext";
+import { ApiError } from "../../shared/api/client";
 import { PageHeading } from "../../shared/PageHeading";
-import { MemoryCard } from "./MemoryCard";
-import { CreateMemory } from "./CreateMemory";
-import { collections } from "./data";
-/** Introduces Memo with quick capture, recent memories and catalog shortcuts. */
+import { createCapture } from "../captures/api";
+
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.detail ? `${error.message}: ${error.detail}` : error.message;
+  }
+  if (error instanceof Error) return error.message;
+  return "No se pudo guardar el recuerdo.";
+}
+
+/** Calendar date ``YYYY-MM-DD`` in the local timezone for capture reference. */
+function todayReferenceAt(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Introduces Memo with inline capture and workspace shortcuts. */
 export function OverviewPage() {
-  const { memories } = useDemo();
-  const [open, setOpen] = useState(false);
   const [capture, setCapture] = useState("");
-  const active = memories.filter((m) => !m.archived);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const save = async () => {
+    const body = capture.trim();
+    if (!body) {
+      setError("Escribe algo que quieras recordar.");
+      setSuccess("");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await createCapture({ body, reference_at: todayReferenceAt() });
+      setCapture("");
+      setSuccess("Recuerdo guardado.");
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <PageHeading
         title="Tu memoria, organizada"
         description="Guarda lo importante y retoma el contexto cuando lo necesites."
-        action={
-          <Button
-            iconName="add-plus"
-            variant="primary"
-            onClick={() => setOpen(true)}
-          >
-            Nuevo recuerdo
-          </Button>
-        }
       />
       <form
         className="panel quick-capture"
         onSubmit={(e) => {
           e.preventDefault();
-          setOpen(true);
+          void save();
         }}
       >
         <Icon name="edit" />
         <label className="grow">
-          <span className="sr-only">Captura rápida</span>
-          <input
+          <span className="sr-only">¿Qué quieres recordar?</span>
+          <textarea
+            rows={2}
             value={capture}
             onChange={(e) => setCapture(e.target.value)}
             placeholder="¿Qué quieres recordar?"
+            disabled={saving}
           />
         </label>
-        <Button formAction="submit">Guardar recuerdo</Button>
+        <Button formAction="submit" variant="primary" loading={saving}>
+          Guardar recuerdo
+        </Button>
       </form>
+      {error && (
+        <div className="overview-feedback">
+          <Alert type="error" header="No se pudo guardar">
+            {error}
+          </Alert>
+        </div>
+      )}
+      {success && (
+        <div className="overview-feedback">
+          <Alert type="success" header="Listo">
+            {success}
+          </Alert>
+        </div>
+      )}
       <div className="overview-columns">
         <section>
-          <div className="section-heading">
-            <h2>
-              Recuerdos recientes <span className="count">{active.length}</span>
-            </h2>
-            <Link to="/recuerdos">Ver todos →</Link>
-          </div>
-          <div className="panel memory-list">
-            {active.slice(0, 3).map((m) => (
-              <MemoryCard key={m.id} memory={m} />
-            ))}
-          </div>
           <Link className="query-banner" to="/query">
             <span className="memory-icon">
               <Icon name="search" />
             </span>
             <span>
               <strong>Encuentra el hilo de tus ideas</strong>
-              <small>Consulta tus recuerdos y vuelve a sus fuentes.</small>
+              <small>Consulta tus recuerdos y filtra por labels.</small>
             </span>
             <Icon name="arrow-right" />
           </Link>
         </section>
         <aside className="overview-aside">
-          <section className="panel">
-            <div className="section-heading">
-              <h2>Colecciones</h2>
-              <Link to="/colecciones">Ver todas</Link>
-            </div>
-            {collections.map((c) => (
-              <Link
-                className="collection-row"
-                key={c}
-                to={`/recuerdos?coleccion=${encodeURIComponent(c)}`}
-              >
-                <Icon name="folder" />
-                <span>
-                  <strong>{c}</strong>
-                  <small>
-                    {active.filter((m) => m.collection === c).length} recuerdos
-                  </small>
-                </span>
-                <Icon name="angle-right" />
-              </Link>
-            ))}
-          </section>
           <section className="panel resources">
             <h2>Tu espacio de trabajo</h2>
             {[
               ["calificadores", "Calificadores", "Criterios de evaluación"],
               ["modelos", "Modelos", "Catálogo de Hugging Face"],
               ["datasources", "Fuentes de datos", "Fuentes de información"],
+              ["conexiones", "Conexiones", "Cuentas autorizadas"],
             ].map(([route, title, description]) => (
               <Link key={route} to={`/${route}`}>
                 <span>
@@ -111,16 +127,6 @@ export function OverviewPage() {
           </section>
         </aside>
       </div>
-      {open && (
-        <CreateMemory
-          open
-          initialContent={capture}
-          onClose={() => {
-            setOpen(false);
-            setCapture("");
-          }}
-        />
-      )}
     </>
   );
 }

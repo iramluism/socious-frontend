@@ -1,6 +1,6 @@
 import { PageHeading } from "../../shared/PageHeading";
 
-/** Documents demo behavior and theme without exposing nonfunctional settings. */
+/** Documents app behavior and theme without exposing nonfunctional settings. */
 export function SettingsPage() {
   return (
     <>
@@ -15,22 +15,14 @@ export function SettingsPage() {
           Inspirado en PyCharm, con tipografía Open Sans e iconos de Cloudscape.
         </p>
         <hr />
-        <h2>Acerca de esta demo</h2>
+        <h2>Acerca de Memo</h2>
         <p>
-          Los recuerdos y el historial se conservan al navegar y se reinician al
-          recargar.
+          Desde Resumen puedes guardar un recuerdo con{" "}
+          <code>POST /captures</code>. Query usa búsqueda semántica (
+          <code>POST /query</code>) y permite filtrar por labels de los
+          calificadores activos.
         </p>
-        <p>
-          No hay conexión con APIs, modelos, servicios externos ni
-          autenticación. La información precargada es ficticia.
-        </p>
-        <p>
-          Query busca coincidencias de palabras en el título y contenido, sin
-          distinguir mayúsculas ni tildes. Ordena por número de palabras
-          coincidentes y después por fecha. Los recuerdos archivados no aparecen
-          en Query.
-        </p>
-        <p className="muted">Socious · Memo / Demo 0.1</p>
+        <p className="muted">Socious · Memo / 0.1</p>
       </section>
     </>
   );

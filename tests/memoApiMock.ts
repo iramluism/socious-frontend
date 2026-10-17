@@ -4,6 +4,8 @@ import {
   googleOAuthKinds,
 } from "./fixtures/connections";
 import { ambitoLabels, classifiers } from "./fixtures/classifiers";
+import type { Capture } from "../src/features/captures/types";
+import type { QueryHit, QueryResponse } from "../src/features/query/types";
 import type { Classifier, Label } from "../src/features/qualifiers/types";
 
 /**
@@ -132,6 +134,96 @@ function parseBody(body: BodyInit | null | undefined): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+/**
+ * Installs a fetch mock for query, capture and classifier/label routes.
+ */
+export function mockMemoQueryAndCaptureFetch(
+  options: {
+    queryResults?: QueryHit[];
+    captureFail?: boolean;
+  } = {},
+): {
+  captures: Capture[];
+  lastQueryBody: () => Record<string, unknown> | null;
+} {
+  const captures: Capture[] = [];
+  let lastQueryBody: Record<string, unknown> | null = null;
+  const registry: Classifier[] = classifiers.map((item) => ({ ...item }));
+  const labelsByClassifier = new Map<number, Label[]>([
+    [1, ambitoLabels.map((item) => ({ ...item }))],
+    [2, []],
+  ]);
+
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = requestUrl(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      const body = parseBody(init?.body);
+
+      if (url.includes("/query") && method === "POST") {
+        lastQueryBody = body;
+        const response: QueryResponse = {
+          results: options.queryResults ?? [
+            {
+              id: "hit-1",
+              text: "Fragmento sobre planificación del proyecto telescopio",
+              source: "nota.md",
+              kind: "memo/capture",
+              metadata: {},
+              classifications: {
+                "1": {
+                  label_id: 12,
+                  label_name: "Laboral",
+                  score: 0.91,
+                },
+              },
+              distance: 0.12,
+            },
+          ],
+        };
+        return jsonResponse(response);
+      }
+
+      if (url.endsWith("/captures") && method === "POST") {
+        if (options.captureFail) {
+          return jsonResponse(
+            { code: "invalid_capture", message: "Cuerpo inválido" },
+            400,
+          );
+        }
+        const created: Capture = {
+          id: crypto.randomUUID(),
+          body: String(body.body ?? ""),
+          reference_at: String(body.reference_at ?? ""),
+          created_at: new Date().toISOString(),
+          modified_at: new Date().toISOString(),
+        };
+        captures.push(created);
+        return jsonResponse(created, 201);
+      }
+
+      const labelsMatch = url.match(/\/classifiers\/(\d+)\/labels/);
+      if (labelsMatch && method === "GET") {
+        return jsonResponse(labelsByClassifier.get(Number(labelsMatch[1])) ?? []);
+      }
+      if (url.endsWith("/classifiers") && method === "GET") {
+        return jsonResponse(registry);
+      }
+
+      return jsonResponse(
+        { code: "unexpected", message: `Unhandled fetch ${method} ${url}` },
+        500,
+      );
+    }),
+  );
+
+  return {
+    captures,
+    lastQueryBody: () => lastQueryBody,
+  };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

@@ -1,15 +1,18 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { initialMemories } from "../features/memories/data";
 import type { Memory, MemoryDraft } from "../features/memories/types";
-import type { QueryInput } from "../features/query/search";
+import type { QueryInput } from "../features/query/types";
+
 interface DemoState {
   memories: Memory[];
   history: QueryInput[];
   addMemory: (draft: MemoryDraft) => Memory;
   rememberQuery: (query: QueryInput) => void;
 }
+
 const Context = createContext<DemoState | null>(null);
-/** Owns demo state above the router pages, preserving it until the page reloads. */
+
+/** Owns session state above the router pages, preserving it until the page reloads. */
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [memories, setMemories] = useState(initialMemories);
   const [history, setHistory] = useState<QueryInput[]>([]);
@@ -43,6 +46,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     </Context.Provider>
   );
 }
+
 /** Provides shared session data; must be called under DemoProvider. */
 export function useDemo(): DemoState {
   const state = useContext(Context);

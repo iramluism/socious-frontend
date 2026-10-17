@@ -5,16 +5,20 @@ import { App } from "../src/app/App";
 import {
   mockMemoClassifiersFetch,
   mockMemoConnectionsFetch,
+  mockMemoQueryAndCaptureFetch,
 } from "./memoApiMock";
+
 beforeEach(() => {
   window.location.hash = "/";
 });
+
 describe("navigable demo", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   it("skips to main without changing the hash route", async () => {
+    mockMemoQueryAndCaptureFetch();
     window.location.hash = "/query";
     render(<App />);
     await userEvent
@@ -24,107 +28,98 @@ describe("navigable demo", () => {
     expect(screen.getByRole("main")).toHaveFocus();
     expect(screen.getByRole("heading", { name: "Query" })).toBeInTheDocument();
   });
-  it("validates creation and makes new content searchable with source references", async () => {
+
+  it("saves a capture from resumen without opening a modal", async () => {
+    const api = mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole("button", { name: "Nuevo recuerdo" }));
-    const dialog = screen.getByRole("dialog");
-    await user.click(
-      within(dialog).getByRole("button", { name: "Guardar recuerdo" }),
-    );
-    expect(within(dialog).getByRole("alert")).toHaveTextContent(
-      "Escribe un título",
-    );
-    await user.type(within(dialog).getByLabelText(/Título/), "Decisión única");
+
+    expect(
+      screen.queryByRole("button", { name: "Nuevo recuerdo" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
     await user.type(
-      within(dialog).getByLabelText(/Contenido/),
-      "Preparar la exposición del telescopio",
+      screen.getByPlaceholderText("¿Qué quieres recordar?"),
+      "Reunión con el equipo del telescopio",
     );
-    await user.selectOptions(
-      within(dialog).getByLabelText("Colección"),
-      "Proyecto",
+    await user.click(screen.getByRole("button", { name: "Guardar recuerdo" }));
+
+    await waitFor(() => expect(api.captures).toHaveLength(1));
+    expect(api.captures[0].body).toBe("Reunión con el equipo del telescopio");
+    expect(api.captures[0].reference_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(screen.getByText("Recuerdo guardado.")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("¿Qué quieres recordar?")).toHaveValue(
+      "",
     );
-    await user.click(
-      within(dialog).getByRole("button", { name: "Guardar recuerdo" }),
-    );
-    expect(
-      screen.getByRole("link", { name: "Decisión única" }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("link", { name: "Query" }));
-    await user.type(
-      screen.getByLabelText("¿Qué quieres encontrar?"),
-      "TELESCOPIO",
-    );
-    await user.click(screen.getByRole("button", { name: "Consultar" }));
-    expect(
-      screen.getByRole("link", { name: "Decisión única" }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("link", { name: "Abrir fuente →" }));
-    expect(
-      screen.getByRole("heading", { name: "Decisión única" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Preparar la exposición del telescopio"),
-    ).toBeInTheDocument();
   });
-  it("restores query text and both filters from history", async () => {
+
+  it("queries the API and restores text plus labels from history", async () => {
+    const api = mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
     window.location.hash = "/query";
     render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Laboral" })).toBeInTheDocument(),
+    );
     await user.type(
       screen.getByLabelText("¿Qué quieres encontrar?"),
-      "memoria",
+      "telescopio",
     );
-    await user.selectOptions(screen.getByLabelText("Colección"), "Proyecto");
-    await user.selectOptions(screen.getByLabelText("Fuente"), "Documentos");
+    await user.click(screen.getByRole("button", { name: "Laboral" }));
     await user.click(screen.getByRole("button", { name: "Consultar" }));
-    expect(
-      screen.getByRole("link", { name: "Principios de una memoria fiable" }),
-    ).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByText(/planificación del proyecto/)).toBeInTheDocument(),
+    );
+    expect(api.lastQueryBody()).toMatchObject({
+      query: "telescopio",
+      labels: ["Laboral"],
+      top_k: 10,
+    });
+
     await user.clear(screen.getByLabelText("¿Qué quieres encontrar?"));
-    await user.selectOptions(screen.getByLabelText("Colección"), "");
-    await user.selectOptions(screen.getByLabelText("Fuente"), "");
+    await user.click(screen.getByRole("button", { name: "Laboral" }));
     await user.click(
-      screen.getByRole("button", { name: /memoria.*Proyecto.*Documentos/ }),
+      screen.getByRole("button", { name: /telescopio.*Laboral/ }),
     );
-    expect(screen.getByLabelText("¿Qué quieres encontrar?")).toHaveValue(
-      "memoria",
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("¿Qué quieres encontrar?")).toHaveValue(
+        "telescopio",
+      ),
     );
-    expect(screen.getByLabelText("Colección")).toHaveValue("Proyecto");
-    expect(screen.getByLabelText("Fuente")).toHaveValue("Documentos");
+    expect(screen.getByRole("button", { name: "Laboral" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
-  it("supports global search, collection filtering and grid view", async () => {
+
+  it("routes global search to Query with the typed text", async () => {
+    mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
     render(<App />);
     await user.type(
       screen.getByLabelText("Buscar en Socious"),
       "lecturas{Enter}",
     );
-    expect(
-      screen.getByRole("heading", { name: "Mis recuerdos" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Lecturas pendientes" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "Ideas para Socious" }),
-    ).not.toBeInTheDocument();
-    await user.selectOptions(
-      screen.getByLabelText("Filtrar colección"),
-      "Trabajo",
+    expect(window.location.hash).toBe("#/query?q=lecturas");
+    await waitFor(() =>
+      expect(screen.getByLabelText("¿Qué quieres encontrar?")).toHaveValue(
+        "lecturas",
+      ),
     );
-    expect(
-      screen.getByText("No hay recuerdos que coincidan con estos filtros."),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Vista cuadrícula" }));
-    expect(
-      screen.getByRole("button", { name: "Vista cuadrícula" }),
-    ).toHaveAttribute("aria-pressed", "true");
   });
-  it("shows validation, no-results and unavailable memories clearly", async () => {
+
+  it("shows validation and empty API results clearly", async () => {
+    mockMemoQueryAndCaptureFetch({ queryResults: [] });
     const user = userEvent.setup();
     window.location.hash = "/query";
     render(<App />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Consultar" })).toBeEnabled(),
+    );
     await user.click(screen.getByRole("button", { name: "Consultar" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Escribe una consulta");
     await user.type(
@@ -132,17 +127,29 @@ describe("navigable demo", () => {
       "zzzzzzz",
     );
     await user.click(screen.getByRole("button", { name: "Consultar" }));
-    expect(
-      screen.getByRole("heading", { name: "Sin coincidencias" }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "Sin coincidencias" }),
+      ).toBeInTheDocument(),
+    );
   });
-  it("resolves deep links and has a fallback for session-only IDs", () => {
-    window.location.hash = "/recuerdos/missing";
+
+  it("hides removed memory navigation entries", () => {
+    mockMemoQueryAndCaptureFetch();
     render(<App />);
+    const nav = screen.getByRole("navigation", { name: "Navegación de Memo" });
     expect(
-      screen.getByRole("heading", { name: "Recuerdo no disponible" }),
-    ).toBeInTheDocument();
+      within(nav).queryByRole("link", { name: "Mis recuerdos" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(nav).queryByRole("link", { name: "Colecciones" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(nav).queryByRole("link", { name: "Archivados" }),
+    ).not.toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Query" })).toBeInTheDocument();
   });
+
   it("navigates to Conexiones, filters the table and opens a detail", async () => {
     mockMemoConnectionsFetch();
 
