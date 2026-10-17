@@ -9,7 +9,8 @@ import {
   ApiError,
   clearStoredAuthToken,
   getStoredAuthToken,
-  setStoredAuthToken,
+  getStoredRefreshToken,
+  setStoredSession,
   setUnauthorizedHandler,
 } from "../shared/api/client";
 import * as authApi from "../features/auth/api";
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = getStoredAuthToken();
-    if (!token) {
+    if (!token && !getStoredRefreshToken()) {
       setReady(true);
       return;
     }
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     const result = await authApi.login(username, password);
-    setStoredAuthToken(result.access_token);
+    setStoredSession(result.access_token, result.refresh_token);
     setUser(result.user);
   };
 

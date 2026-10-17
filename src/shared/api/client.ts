@@ -1,6 +1,7 @@
 const DEFAULT_MEMO_API_BASE = "/api/v1/memo";
 const DEFAULT_AUTH_API_BASE = "/api/v1/auth";
 export const AUTH_TOKEN_STORAGE_KEY = "socious.auth.token";
+export const AUTH_REFRESH_TOKEN_STORAGE_KEY = "socious.auth.refresh";
 
 /** Parsed JSON error body from the Memo REST API. */
 export interface ApiErrorBody {
@@ -73,9 +74,33 @@ export function setStoredAuthToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
 }
 
-/** Remove the persisted JWT. */
+/** Refresh token stored after login, or ``null`` when absent. */
+export function getStoredRefreshToken(): string | null {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+  const value = localStorage.getItem(AUTH_REFRESH_TOKEN_STORAGE_KEY);
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  return value;
+}
+
+/** Persist the refresh token used to rotate access JWTs. */
+export function setStoredRefreshToken(token: string): void {
+  localStorage.setItem(AUTH_REFRESH_TOKEN_STORAGE_KEY, token);
+}
+
+/** Persist access and refresh tokens from a login or refresh response. */
+export function setStoredSession(accessToken: string, refreshToken: string): void {
+  setStoredAuthToken(accessToken);
+  setStoredRefreshToken(refreshToken);
+}
+
+/** Remove the persisted JWT and refresh token. */
 export function clearStoredAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  localStorage.removeItem(AUTH_REFRESH_TOKEN_STORAGE_KEY);
 }
 
 function resolveApiUrl(base: string, path: string): string {
@@ -140,6 +165,10 @@ export interface MemoFetchOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
 }
 
+export interface AuthFetchOptions extends MemoFetchOptions {
+  skipRefresh?: boolean;
+}
+
 /**
  * Typed ``fetch`` against the Memo API with JSON request/response handling.
  *
@@ -193,15 +222,75 @@ function jsonRequestInit(options: MemoFetchOptions): RequestInit {
   };
 }
 
-async function parseFetchResponse<T>(response: Response): Promise<T> {
+function isRefreshAuthUrl(url: string): boolean {
+  return url.endsWith("/refresh") || url.includes("/refresh?");
+}
+
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function rotateRefreshSession(): Promise<boolean> {
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) {
+    return false;
+  }
+  const response = await fetch(
+    resolveAuthUrl("/refresh"),
+    jsonRequestInit({
+      method: "POST",
+      body: { refresh_token: refreshToken },
+    }),
+  );
+  if (!response.ok) {
+    return false;
+  }
+  const payload = await parseJsonBody(response);
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    typeof (payload as { access_token?: unknown }).access_token !== "string" ||
+    typeof (payload as { refresh_token?: unknown }).refresh_token !== "string"
+  ) {
+    return false;
+  }
+  const tokens = payload as { access_token: string; refresh_token: string };
+  setStoredSession(tokens.access_token, tokens.refresh_token);
+  return true;
+}
+
+function tryRotateRefreshSession(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = rotateRefreshSession().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+function failUnauthorized(status: number, payload: unknown): never {
+  clearStoredAuthToken();
+  unauthorizedHandler?.();
+  throw new ApiError(status, toApiErrorBody(status, payload));
+}
+
+async function parseFetchResponse<T>(
+  response: Response,
+  retry: (() => Promise<Response>) | null,
+): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
+  }
+  if (response.status === 401 && retry !== null) {
+    const rotated = await tryRotateRefreshSession();
+    if (rotated) {
+      return parseFetchResponse<T>(await retry(), null);
+    }
+    const payload = await parseJsonBody(response);
+    failUnauthorized(response.status, payload);
   }
   const payload = await parseJsonBody(response);
   if (!response.ok) {
     if (response.status === 401) {
-      clearStoredAuthToken();
-      unauthorizedHandler?.();
+      failUnauthorized(response.status, payload);
     }
     throw new ApiError(response.status, toApiErrorBody(response.status, payload));
   }
@@ -212,8 +301,9 @@ export async function memoFetch<T>(
   path: string,
   options: MemoFetchOptions = {},
 ): Promise<T> {
-  const response = await fetch(resolveMemoUrl(path), jsonRequestInit(options));
-  return parseFetchResponse<T>(response);
+  const url = resolveMemoUrl(path);
+  const send = () => fetch(url, jsonRequestInit(options));
+  return parseFetchResponse<T>(await send(), send);
 }
 
 /**
@@ -239,8 +329,11 @@ export async function memoFetch<T>(
  */
 export async function authFetch<T>(
   path: string,
-  options: MemoFetchOptions = {},
+  options: AuthFetchOptions = {},
 ): Promise<T> {
-  const response = await fetch(resolveAuthUrl(path), jsonRequestInit(options));
-  return parseFetchResponse<T>(response);
+  const { skipRefresh, ...fetchOptions } = options;
+  const url = resolveAuthUrl(path);
+  const send = () => fetch(url, jsonRequestInit(fetchOptions));
+  const allowRefresh = skipRefresh !== true && !isRefreshAuthUrl(url);
+  return parseFetchResponse<T>(await send(), allowRefresh ? send : null);
 }

@@ -17,6 +17,18 @@ export function login(username: string, password: string): Promise<LoginResponse
   });
 }
 
+/** Rotates tokens via ``POST /refresh``. */
+export function refresh(refreshToken: string): Promise<LoginResponse> {
+  return authFetch<LoginResponse>(
+    "/refresh",
+    {
+      method: "POST",
+      body: { refresh_token: refreshToken },
+    },
+    { skipRefresh: true },
+  );
+}
+
 /** Loads the current user via ``GET /me``. */
 export function getMe(): Promise<AuthUser> {
   return authFetch<AuthUser>("/me");

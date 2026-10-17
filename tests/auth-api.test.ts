@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  AUTH_REFRESH_TOKEN_STORAGE_KEY,
   AUTH_TOKEN_STORAGE_KEY,
   authFetch,
   memoFetch,
+  setStoredRefreshToken,
   setStoredAuthToken,
 } from "../src/shared/api/client";
 import { getMe, login, signUp } from "../src/features/auth/api";
@@ -11,6 +13,7 @@ const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  localStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -66,6 +69,7 @@ describe("auth api", () => {
         new Response(
           JSON.stringify({
             access_token: "jwt-token",
+            refresh_token: "refresh-token",
             token_type: "bearer",
             user,
           }),
@@ -76,6 +80,7 @@ describe("auth api", () => {
     await expect(signUp("Ira", "secret123")).resolves.toEqual(user);
     await expect(login("ira", "secret123")).resolves.toMatchObject({
       access_token: "jwt-token",
+      refresh_token: "refresh-token",
       token_type: "bearer",
     });
     expect(globalThis.fetch).toHaveBeenNthCalledWith(
@@ -101,5 +106,50 @@ describe("auth api", () => {
 
     await expect(getMe()).resolves.toEqual(user);
     expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBe("jwt-token");
+  });
+
+  it("refreshes the access token after a 401 and retries the request", async () => {
+    setStoredAuthToken("expired-jwt");
+    setStoredRefreshToken("refresh-token");
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            code: 2001,
+            message: "InvalidToken",
+            detail: "Invalid or missing token.",
+          }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: "new-jwt",
+            refresh_token: "new-refresh",
+            token_type: "bearer",
+            user,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(user), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    await expect(getMe()).resolves.toEqual(user);
+    expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBe("new-jwt");
+    expect(localStorage.getItem(AUTH_REFRESH_TOKEN_STORAGE_KEY)).toBe(
+      "new-refresh",
+    );
+    expect(globalThis.fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/v1/auth/refresh",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 });
