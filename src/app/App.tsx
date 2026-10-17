@@ -11,6 +11,7 @@ import {
 import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 import Icon from "@cloudscape-design/components/icon";
 import type { IconProps } from "@cloudscape-design/components/icon";
+import { AuthProvider, useAuth } from "./AuthContext";
 import { DemoProvider } from "./DemoContext";
 import { OverviewPage } from "../features/memories/OverviewPage";
 import { QueryPage } from "../features/query/QueryPage";
@@ -27,6 +28,9 @@ import {
   ConnectionDetailPage,
 } from "../features/connections/ConnectionsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { AccountPage, usernameInitials } from "../features/auth/AccountPage";
+import { LoginPage } from "../features/auth/LoginPage";
+import { SignUpPage } from "../features/auth/SignUpPage";
 
 const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/", label: "Resumen", icon: "grid-view" },
@@ -45,10 +49,17 @@ function Shell() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const title =
-    navigation.find(
-      (n) => n.path !== "/" && location.pathname.startsWith(n.path),
-    )?.label ?? "Resumen";
+    location.pathname === "/login"
+      ? "Iniciar sesión"
+      : location.pathname === "/sign-up"
+        ? "Crear cuenta"
+        : location.pathname === "/cuenta"
+          ? "My Account"
+          : (navigation.find(
+              (n) => n.path !== "/" && location.pathname.startsWith(n.path),
+            )?.label ?? "Resumen");
   return (
     <>
       <a
@@ -107,9 +118,32 @@ function Shell() {
           <kbd>↵</kbd>
         </form>
         <span className="top-demo">DEMO</span>
-        <span className="avatar" aria-label="Perfil de demostración IL">
-          IL
-        </span>
+        <ButtonDropdown
+          className="avatar-dropdown"
+          expandToViewport
+          ariaLabel={user ? `Cuenta de ${user.username}` : "Cuenta"}
+          items={
+            user
+              ? [
+                  { id: "account", text: "My Account" },
+                  { id: "logout", text: "Cerrar sesión" },
+                ]
+              : [
+                  { id: "login", text: "Iniciar sesión" },
+                  { id: "signup", text: "Crear cuenta" },
+                ]
+          }
+          onItemClick={({ detail }) => {
+            if (detail.id === "login") navigate("/login");
+            if (detail.id === "signup") navigate("/sign-up");
+            if (detail.id === "account") navigate("/cuenta");
+            if (detail.id === "logout") logout();
+          }}
+        >
+          <span className="avatar">
+            {user ? usernameInitials(user.username) : "?"}
+          </span>
+        </ButtonDropdown>
       </header>
       <div className="app-body">
         <aside
@@ -190,6 +224,9 @@ function Shell() {
             <Route path="/conexiones" element={<ConnectionsPage />} />
             <Route path="/conexiones/:id" element={<ConnectionDetailPage />} />
             <Route path="/configuracion" element={<SettingsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/cuenta" element={<AccountPage />} />
             <Route
               path="*"
               element={
@@ -213,10 +250,12 @@ function Shell() {
 /** Composes session state and hash routing for standalone static hosting. */
 export function App() {
   return (
-    <DemoProvider>
-      <HashRouter>
-        <Shell />
-      </HashRouter>
-    </DemoProvider>
+    <AuthProvider>
+      <DemoProvider>
+        <HashRouter>
+          <Shell />
+        </HashRouter>
+      </DemoProvider>
+    </AuthProvider>
   );
 }

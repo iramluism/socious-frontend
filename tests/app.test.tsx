@@ -173,6 +173,18 @@ describe("navigable demo", () => {
     );
   });
 
+  it("opens login from the account menu", async () => {
+    mockMemoQueryAndCaptureFetch();
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Cuenta" }));
+    await user.click(await screen.findByText("Iniciar sesión"));
+    expect(window.location.hash).toBe("#/login");
+    expect(
+      screen.getByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeInTheDocument();
+  });
+
   it("hides removed memory navigation entries", () => {
     mockMemoQueryAndCaptureFetch();
     render(<App />);

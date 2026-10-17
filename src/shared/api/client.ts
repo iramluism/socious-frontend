@@ -1,4 +1,6 @@
 const DEFAULT_MEMO_API_BASE = "/api/v1/memo";
+const DEFAULT_AUTH_API_BASE = "/api/v1/auth";
+export const AUTH_TOKEN_STORAGE_KEY = "socious.auth.token";
 
 /** Parsed JSON error body from the Memo REST API. */
 export interface ApiErrorBody {
@@ -38,13 +40,58 @@ export function memoApiBaseUrl(): string {
   return DEFAULT_MEMO_API_BASE;
 }
 
-function resolveMemoUrl(path: string): string {
-  const base = memoApiBaseUrl();
+/**
+ * Auth API base URL (no trailing slash).
+ *
+ * Returns
+ * -------
+ * string
+ *     ``VITE_AUTH_API_BASE`` when set, otherwise ``/api/v1/auth``.
+ */
+export function authApiBaseUrl(): string {
+  const fromEnv = import.meta.env.VITE_AUTH_API_BASE;
+  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
+    return fromEnv.trim().replace(/\/+$/, "");
+  }
+  return DEFAULT_AUTH_API_BASE;
+}
+
+/** JWT stored after login, or ``null`` when the user is signed out. */
+export function getStoredAuthToken(): string | null {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+  const value = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+  return value;
+}
+
+/** Persist the JWT used by {@link authFetch}. */
+export function setStoredAuthToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+}
+
+/** Remove the persisted JWT. */
+export function clearStoredAuthToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+function resolveApiUrl(base: string, path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) {
     return path;
   }
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base}${normalized}`;
+}
+
+function resolveMemoUrl(path: string): string {
+  return resolveApiUrl(memoApiBaseUrl(), path);
+}
+
+function resolveAuthUrl(path: string): string {
+  return resolveApiUrl(authApiBaseUrl(), path);
 }
 
 function defaultErrorMessage(status: number, fallback: string): string {
@@ -140,6 +187,68 @@ export async function memoFetch<T>(
   };
 
   const response = await fetch(resolveMemoUrl(path), init);
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const payload = await parseJsonBody(response);
+
+  if (!response.ok) {
+    throw new ApiError(response.status, toApiErrorBody(response.status, payload));
+  }
+
+  return payload as T;
+}
+
+/**
+ * Typed ``fetch`` against the Auth API with JSON handling and Bearer token.
+ *
+ * Parameters
+ * ----------
+ * path : str
+ *     Path relative to the Auth API base (e.g. ``/login``).
+ * options : MemoFetchOptions, optional
+ *     Standard fetch options; ``body`` is JSON-serialized unless it is
+ *     ``FormData``.
+ *
+ * Returns
+ * -------
+ * Promise<T>
+ *     Parsed JSON body, or ``undefined`` for 204 No Content.
+ *
+ * Raises
+ * ------
+ * ApiError
+ *     When the response is not ok.
+ */
+export async function authFetch<T>(
+  path: string,
+  options: MemoFetchOptions = {},
+): Promise<T> {
+  const { body, headers, ...rest } = options;
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+  const token = getStoredAuthToken();
+  const init: RequestInit = {
+    ...rest,
+    headers: {
+      Accept: "application/json",
+      ...(body !== undefined && !isFormData
+        ? { "Content-Type": "application/json" }
+        : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+    body:
+      body === undefined
+        ? undefined
+        : isFormData
+          ? (body as FormData)
+          : JSON.stringify(body),
+  };
+
+  const response = await fetch(resolveAuthUrl(path), init);
 
   if (response.status === 204) {
     return undefined as T;

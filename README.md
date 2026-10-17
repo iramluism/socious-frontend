@@ -84,7 +84,7 @@ Vitest cubre búsqueda de recuerdos, filtros de conexiones y calificadores, clie
 
 ## Limitaciones
 
-- Sin autenticación de usuario en Socious; API Memo pensada para loopback.
+- Autenticación de usuario (sign-up / login / My Account) contra `/api/v1/auth`; las rutas de Memo siguen sin exigir token.
 - Recuerdos, colecciones y el catálogo de modelos siguen siendo demo en memoria (recarga = reset).
 - Familia `api_key` no se crea desde la UI (solo Google OAuth en el MVP).
 - Acciones masivas en la tabla de conexiones: próximamente.
