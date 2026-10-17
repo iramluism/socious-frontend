@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { AUTH_TOKEN_STORAGE_KEY } from "../src/shared/api/client";
 import { connections, googleOAuthKinds } from "./fixtures/connections";
 import { ambitoLabels, classifiers } from "./fixtures/classifiers";
 import type { Capture } from "../src/features/captures/types";
@@ -14,6 +15,8 @@ export function mockMemoConnectionsFetch(): void {
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = requestUrl(input);
       const method = (init?.method ?? "GET").toUpperCase();
+      const authMe = jsonIfAuthMe(url, method);
+      if (authMe) return authMe;
 
       if (url.includes("/kinds") && method === "GET") {
         return jsonResponse(googleOAuthKinds);
@@ -72,6 +75,8 @@ export function mockMemoClassifiersFetch(): void {
       const url = requestUrl(input);
       const method = (init?.method ?? "GET").toUpperCase();
       const body = parseBody(init?.body);
+      const authMe = jsonIfAuthMe(url, method);
+      if (authMe) return authMe;
 
       const labelsMatch = url.match(/\/classifiers\/(\d+)\/labels/);
       if (labelsMatch && method === "GET") {
@@ -168,6 +173,8 @@ export function mockMemoQueryAndCaptureFetch(
       const url = requestUrl(input);
       const method = (init?.method ?? "GET").toUpperCase();
       const body = parseBody(init?.body);
+      const authMe = jsonIfAuthMe(url, method);
+      if (authMe) return authMe;
 
       if (url.includes("/query") && method === "POST") {
         lastQueryBody = body;
@@ -277,4 +284,22 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export const TEST_AUTH_USER = {
+  id: "11111111-1111-4111-8111-111111111111",
+  username: "ira",
+  created_at: "2026-10-17T12:00:00+00:00",
+};
+
+/** Persist a dummy JWT so AuthProvider hydrates via GET /me. */
+export function stubAuthSession(): void {
+  localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, "test-jwt");
+}
+
+function jsonIfAuthMe(url: string, method: string): Response | null {
+  if (method === "GET" && url.includes("/auth/me")) {
+    return jsonResponse(TEST_AUTH_USER);
+  }
+  return null;
 }

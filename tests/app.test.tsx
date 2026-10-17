@@ -6,11 +6,19 @@ import {
   mockMemoClassifiersFetch,
   mockMemoConnectionsFetch,
   mockMemoQueryAndCaptureFetch,
+  stubAuthSession,
 } from "./memoApiMock";
 
 beforeEach(() => {
   window.location.hash = "/";
+  stubAuthSession();
 });
+
+async function renderAuthedApp() {
+  const view = render(<App />);
+  await screen.findByRole("navigation", { name: "Navegación de Memo" });
+  return view;
+}
 
 describe("navigable demo", () => {
   afterEach(() => {
@@ -20,7 +28,7 @@ describe("navigable demo", () => {
   it("skips to main without changing the hash route", async () => {
     mockMemoQueryAndCaptureFetch();
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
     await userEvent
       .setup()
       .click(screen.getByRole("link", { name: "Saltar al contenido" }));
@@ -32,7 +40,7 @@ describe("navigable demo", () => {
   it("saves a capture from resumen without opening a modal", async () => {
     const api = mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
-    render(<App />);
+    await renderAuthedApp();
 
     expect(
       screen.queryByRole("button", { name: "Nuevo recuerdo" }),
@@ -58,7 +66,7 @@ describe("navigable demo", () => {
   it("saves a capture with attachments and uploads each document", async () => {
     const api = mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
-    render(<App />);
+    await renderAuthedApp();
 
     await user.type(
       screen.getByPlaceholderText("¿Qué quieres recordar?"),
@@ -93,7 +101,7 @@ describe("navigable demo", () => {
     const api = mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
 
     await waitFor(() =>
       expect(
@@ -138,7 +146,7 @@ describe("navigable demo", () => {
   it("routes global search to Query with the typed text", async () => {
     mockMemoQueryAndCaptureFetch();
     const user = userEvent.setup();
-    render(<App />);
+    await renderAuthedApp();
     await user.type(
       screen.getByLabelText("Buscar en Socious"),
       "lecturas{Enter}",
@@ -155,7 +163,7 @@ describe("navigable demo", () => {
     mockMemoQueryAndCaptureFetch({ queryResults: [] });
     const user = userEvent.setup();
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Consultar" })).toBeEnabled(),
     );
@@ -173,21 +181,21 @@ describe("navigable demo", () => {
     );
   });
 
-  it("opens login from the account menu", async () => {
+  it("sends guests to Sign in instead of the console", async () => {
+    localStorage.clear();
     mockMemoQueryAndCaptureFetch();
-    const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole("button", { name: "Cuenta" }));
-    await user.click(await screen.findByText("Iniciar sesión"));
-    expect(window.location.hash).toBe("#/login");
     expect(
-      screen.getByRole("heading", { name: "Iniciar sesión" }),
+      await screen.findByRole("heading", { name: "Sign in" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: "Navegación de Memo" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("hides removed memory navigation entries", () => {
+  it("hides removed memory navigation entries", async () => {
     mockMemoQueryAndCaptureFetch();
-    render(<App />);
+    await renderAuthedApp();
     const nav = screen.getByRole("navigation", { name: "Navegación de Memo" });
     expect(
       within(nav).queryByRole("link", { name: "Mis recuerdos" }),
@@ -207,7 +215,7 @@ describe("navigable demo", () => {
     mockMemoConnectionsFetch();
 
     const user = userEvent.setup();
-    render(<App />);
+    await renderAuthedApp();
     await user.click(screen.getByRole("link", { name: "Conexiones" }));
     expect(window.location.hash).toBe("#/conexiones");
     expect(
@@ -244,7 +252,7 @@ describe("navigable demo", () => {
     mockMemoClassifiersFetch();
 
     const user = userEvent.setup();
-    render(<App />);
+    await renderAuthedApp();
     await user.click(screen.getByRole("link", { name: "Calificadores" }));
     expect(window.location.hash).toBe("#/calificadores");
     await waitFor(() =>

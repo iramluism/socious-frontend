@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_TOKEN_STORAGE_KEY,
   authFetch,
+  memoFetch,
   setStoredAuthToken,
 } from "../src/shared/api/client";
 import { getMe, login, signUp } from "../src/features/auth/api";
@@ -20,19 +21,28 @@ const user = {
 };
 
 describe("authFetch", () => {
-  it("sends Bearer token from localStorage", async () => {
+  it("sends Bearer token from localStorage on auth and memo requests", async () => {
     setStoredAuthToken("jwt-token");
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(user), {
+    globalThis.fetch = vi.fn().mockImplementation(async () => {
+      return new Response(JSON.stringify(user), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }),
-    );
+      });
+    });
 
     await authFetch("/me");
+    await memoFetch("/captures");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/v1/auth/me",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer jwt-token",
+        }),
+      }),
+    );
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/v1/memo/captures",
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer jwt-token",

@@ -162,20 +162,26 @@ export interface MemoFetchOptions extends Omit<RequestInit, "body"> {
  *     When the response is not ok and the body matches ``{ code, message, detail? }``
  *     or a generic HTTP error is synthesized.
  */
-export async function memoFetch<T>(
-  path: string,
-  options: MemoFetchOptions = {},
-): Promise<T> {
+let unauthorizedHandler: (() => void) | null = null;
+
+/** Register a callback when a 401 clears the stored JWT. */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
+function jsonRequestInit(options: MemoFetchOptions): RequestInit {
   const { body, headers, ...rest } = options;
   const isFormData =
     typeof FormData !== "undefined" && body instanceof FormData;
-  const init: RequestInit = {
+  const token = getStoredAuthToken();
+  return {
     ...rest,
     headers: {
       Accept: "application/json",
       ...(body !== undefined && !isFormData
         ? { "Content-Type": "application/json" }
         : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     body:
@@ -185,20 +191,29 @@ export async function memoFetch<T>(
           ? (body as FormData)
           : JSON.stringify(body),
   };
+}
 
-  const response = await fetch(resolveMemoUrl(path), init);
-
+async function parseFetchResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
-
   const payload = await parseJsonBody(response);
-
   if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuthToken();
+      unauthorizedHandler?.();
+    }
     throw new ApiError(response.status, toApiErrorBody(response.status, payload));
   }
-
   return payload as T;
+}
+
+export async function memoFetch<T>(
+  path: string,
+  options: MemoFetchOptions = {},
+): Promise<T> {
+  const response = await fetch(resolveMemoUrl(path), jsonRequestInit(options));
+  return parseFetchResponse<T>(response);
 }
 
 /**
@@ -226,39 +241,6 @@ export async function authFetch<T>(
   path: string,
   options: MemoFetchOptions = {},
 ): Promise<T> {
-  const { body, headers, ...rest } = options;
-  const isFormData =
-    typeof FormData !== "undefined" && body instanceof FormData;
-  const token = getStoredAuthToken();
-  const init: RequestInit = {
-    ...rest,
-    headers: {
-      Accept: "application/json",
-      ...(body !== undefined && !isFormData
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body:
-      body === undefined
-        ? undefined
-        : isFormData
-          ? (body as FormData)
-          : JSON.stringify(body),
-  };
-
-  const response = await fetch(resolveAuthUrl(path), init);
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const payload = await parseJsonBody(response);
-
-  if (!response.ok) {
-    throw new ApiError(response.status, toApiErrorBody(response.status, payload));
-  }
-
-  return payload as T;
+  const response = await fetch(resolveAuthUrl(path), jsonRequestInit(options));
+  return parseFetchResponse<T>(response);
 }

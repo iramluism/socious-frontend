@@ -179,8 +179,109 @@ hr {
 .account-fields dd {
   margin: 0;
 }
-.auth-panel {
-  max-width: 28rem;
+.aws-auth {
+  min-height: 100vh;
+  background: #eaeded;
+  color: #16191f;
+  color-scheme: light;
+  font-family: "Amazon Ember", "Open Sans", sans-serif;
+}
+.aws-auth a {
+  color: #0073bb;
+}
+.aws-auth-header {
+  background: #232f3e;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+.aws-auth-brand {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+.aws-auth-main {
+  padding: 40px 16px 64px;
+}
+.aws-auth-card {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #d5dbdb;
+  padding: 20px 26px 26px;
+}
+.aws-auth-card h1 {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #16191f;
+  margin-bottom: 16px;
+}
+.aws-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.aws-auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #16191f;
+}
+.aws-auth-form input {
+  background: #fff;
+  color: #16191f;
+  border: 1px solid #879596;
+  border-radius: 2px;
+  padding: 8px 10px;
+}
+.aws-auth-form input:focus-visible {
+  outline: 2px solid #0073bb;
+  border-color: #0073bb;
+}
+.aws-auth-submit {
+  width: 100%;
+  margin-top: 4px;
+  background: #ff9900;
+  border: 1px solid #e47911;
+  color: #111;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 2px;
+}
+.aws-auth-submit:hover:not(:disabled) {
+  background: #ec7211;
+}
+.aws-auth-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.aws-auth-error {
+  color: #d13212;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.aws-auth-hint {
+  color: #545b64;
+  font-size: 12px;
+  margin: 0;
+  font-weight: 400;
+}
+.aws-auth-new {
+  max-width: 400px;
+  margin: 20px auto 0;
+  text-align: center;
+  font-size: 13px;
+  color: #545b64;
+}
+.aws-auth-boot {
+  margin: 48px;
+  color: var(--muted);
 }
 .app-body {
   display: flex;

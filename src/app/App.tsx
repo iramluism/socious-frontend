@@ -12,6 +12,7 @@ import ButtonDropdown from "@cloudscape-design/components/button-dropdown";
 import Icon from "@cloudscape-design/components/icon";
 import type { IconProps } from "@cloudscape-design/components/icon";
 import { AuthProvider, useAuth } from "./AuthContext";
+import { RequireAuth } from "./RequireAuth";
 import { DemoProvider } from "./DemoContext";
 import { OverviewPage } from "../features/memories/OverviewPage";
 import { QueryPage } from "../features/query/QueryPage";
@@ -51,15 +52,11 @@ function Shell() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const title =
-    location.pathname === "/login"
-      ? "Iniciar sesión"
-      : location.pathname === "/sign-up"
-        ? "Crear cuenta"
-        : location.pathname === "/cuenta"
-          ? "My Account"
-          : (navigation.find(
-              (n) => n.path !== "/" && location.pathname.startsWith(n.path),
-            )?.label ?? "Resumen");
+    location.pathname === "/cuenta"
+      ? "My Account"
+      : (navigation.find(
+          (n) => n.path !== "/" && location.pathname.startsWith(n.path),
+        )?.label ?? "Resumen");
   return (
     <>
       <a
@@ -121,23 +118,17 @@ function Shell() {
         <ButtonDropdown
           className="avatar-dropdown"
           expandToViewport
-          ariaLabel={user ? `Cuenta de ${user.username}` : "Cuenta"}
-          items={
-            user
-              ? [
-                  { id: "account", text: "My Account" },
-                  { id: "logout", text: "Cerrar sesión" },
-                ]
-              : [
-                  { id: "login", text: "Iniciar sesión" },
-                  { id: "signup", text: "Crear cuenta" },
-                ]
-          }
+          ariaLabel={`Cuenta de ${user?.username ?? ""}`}
+          items={[
+            { id: "account", text: "My Account" },
+            { id: "logout", text: "Sign out" },
+          ]}
           onItemClick={({ detail }) => {
-            if (detail.id === "login") navigate("/login");
-            if (detail.id === "signup") navigate("/sign-up");
             if (detail.id === "account") navigate("/cuenta");
-            if (detail.id === "logout") logout();
+            if (detail.id === "logout") {
+              logout();
+              navigate("/login");
+            }
           }}
         >
           <span className="avatar">
@@ -224,8 +215,6 @@ function Shell() {
             <Route path="/conexiones" element={<ConnectionsPage />} />
             <Route path="/conexiones/:id" element={<ConnectionDetailPage />} />
             <Route path="/configuracion" element={<SettingsPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/cuenta" element={<AccountPage />} />
             <Route
               path="*"
@@ -253,7 +242,18 @@ export function App() {
     <AuthProvider>
       <DemoProvider>
         <HashRouter>
-          <Shell />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
+            <Route
+              path="*"
+              element={
+                <RequireAuth>
+                  <Shell />
+                </RequireAuth>
+              }
+            />
+          </Routes>
         </HashRouter>
       </DemoProvider>
     </AuthProvider>

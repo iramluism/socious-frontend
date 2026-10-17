@@ -10,6 +10,7 @@ import {
   clearStoredAuthToken,
   getStoredAuthToken,
   setStoredAuthToken,
+  setUnauthorizedHandler,
 } from "../shared/api/client";
 import * as authApi from "../features/auth/api";
 import type { AuthUser } from "../features/auth/types";
@@ -28,6 +29,11 @@ const Context = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null));
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     const token = getStoredAuthToken();

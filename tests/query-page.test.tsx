@@ -2,10 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../src/app/App";
-import { mockMemoQueryAndCaptureFetch } from "./memoApiMock";
+import { mockMemoQueryAndCaptureFetch, stubAuthSession } from "./memoApiMock";
 import type { QueryHit } from "../src/features/query/types";
 
 afterEach(() => vi.unstubAllGlobals());
+
+async function renderAuthedApp() {
+  stubAuthSession();
+  const view = render(<App />);
+  await screen.findByRole("navigation", { name: "Navegación de Memo" });
+  return view;
+}
 const hit = (id: string, title: string): QueryHit => ({
   id,
   text: "---",
@@ -25,7 +32,7 @@ describe("query result integration", () => {
       ],
     });
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
     const user = userEvent.setup();
     await user.type(
       screen.getByLabelText("¿Qué quieres encontrar?"),
@@ -51,7 +58,7 @@ describe("query result integration", () => {
     const originalFetch = globalThis.fetch;
     let rejectQuery: (error: Error) => void = () => {};
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
     const user = userEvent.setup();
     await user.type(
       screen.getByLabelText("¿Qué quieres encontrar?"),
@@ -93,7 +100,7 @@ describe("query result integration", () => {
       ],
     });
     window.location.hash = "/query";
-    render(<App />);
+    await renderAuthedApp();
     const user = userEvent.setup();
     await user.type(
       screen.getByLabelText("¿Qué quieres encontrar?"),

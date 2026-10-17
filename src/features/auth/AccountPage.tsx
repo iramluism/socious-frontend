@@ -1,16 +1,11 @@
-import { Navigate } from "react-router-dom";
 import { useAuth } from "../../app/AuthContext";
 import { PageHeading, formatDate } from "../../shared/PageHeading";
 
 /** Signed-in profile: id, username, created_at. */
 export function AccountPage() {
-  const { user, ready } = useAuth();
-
-  if (!ready) {
-    return <p className="muted">Cargando cuenta…</p>;
-  }
+  const { user } = useAuth();
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return null;
   }
 
   return (

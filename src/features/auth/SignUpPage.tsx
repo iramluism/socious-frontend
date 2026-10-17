@@ -1,12 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import Alert from "@cloudscape-design/components/alert";
-import Button from "@cloudscape-design/components/button";
 import { useAuth } from "../../app/AuthContext";
 import { ApiError } from "../../shared/api/client";
-import { PageHeading } from "../../shared/PageHeading";
+import { AwsAuthLayout } from "./AwsAuthLayout";
 
-/** Username and password registration. */
+/** Username and password registration (AWS console-style page). */
 export function SignUpPage() {
   const { user, ready, signUp } = useAuth();
   const navigate = useNavigate();
@@ -16,7 +14,7 @@ export function SignUpPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (ready && user) {
-    return <Navigate to="/cuenta" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const onSubmit = async (event: FormEvent) => {
@@ -25,7 +23,7 @@ export function SignUpPage() {
     setSubmitting(true);
     try {
       await signUp(username, password);
-      navigate("/cuenta");
+      navigate("/", { replace: true });
     } catch (caught) {
       if (caught instanceof ApiError) {
         setError(caught.message);
@@ -38,51 +36,52 @@ export function SignUpPage() {
   };
 
   return (
-    <>
-      <PageHeading
-        title="Crear cuenta"
-        description="Elige un usuario y una contraseña para registrarte."
-      />
-      <section className="panel auth-panel">
-        {error ? (
-          <Alert type="error" statusIconAriaLabel="Error">
-            {error}
-          </Alert>
-        ) : null}
-        <form onSubmit={onSubmit} noValidate className="form-stack">
-          <label>
-            Usuario <span className="required">*</span>
-            <input
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              aria-required="true"
-            />
-          </label>
-          <label>
-            Contraseña <span className="required">*</span>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-required="true"
-            />
-          </label>
-          <p className="muted">
-            Usuario: 3–64 caracteres (letras, números, punto, guion o
-            guion bajo). Contraseña: mínimo 8 caracteres.
-          </p>
-          <div className="actions">
-            <Button variant="primary" formAction="submit" loading={submitting}>
-              Crear cuenta
-            </Button>
-          </div>
-        </form>
-        <p className="muted">
-          ¿Ya tienes cuenta? <Link to="/login">Iniciar sesión</Link>
+    <AwsAuthLayout
+      title="Create account"
+      footer={
+        <p className="aws-auth-new">
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
-      </section>
-    </>
+      }
+    >
+      {error ? (
+        <p className="aws-auth-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <form onSubmit={onSubmit} noValidate className="aws-auth-form">
+        <label>
+          Username
+          <input
+            autoComplete="username"
+            autoFocus
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            aria-required="true"
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-required="true"
+          />
+        </label>
+        <p className="aws-auth-hint">
+          Username: 3–64 characters (letters, numbers, dot, hyphen or
+          underscore). Password: at least 8 characters.
+        </p>
+        <button
+          className="aws-auth-submit"
+          type="submit"
+          disabled={submitting}
+        >
+          {submitting ? "Creating…" : "Create account"}
+        </button>
+      </form>
+    </AwsAuthLayout>
   );
 }
