@@ -12,6 +12,7 @@ import { queryMemos } from "./api";
 import { formatLabels } from "./search";
 import type { QueryHit, QueryInput } from "./types";
 
+import { hitsAfterForget } from "./presentation";
 import { QueryResultCard } from "./QueryResultCard";
 
 type LabelOption = Label & { classifierName: string };
@@ -129,6 +130,10 @@ export function QueryPage() {
     }
   };
 
+  const handleForgotten = (forgotten: QueryHit) => {
+    setResults((current) => hitsAfterForget(current, forgotten));
+  };
+
   return (
     <>
       <PageHeading
@@ -237,6 +242,7 @@ export function QueryPage() {
                     key={hit.id}
                     hit={hit}
                     query={submitted.text}
+                    onForgotten={handleForgotten}
                   />
                 ))
               ) : (

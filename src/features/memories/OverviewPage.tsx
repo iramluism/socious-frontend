@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Alert from "@cloudscape-design/components/alert";
 import Button from "@cloudscape-design/components/button";
@@ -6,6 +6,9 @@ import Icon from "@cloudscape-design/components/icon";
 import { ApiError } from "../../shared/api/client";
 import { PageHeading } from "../../shared/PageHeading";
 import { createCapture } from "../captures/api";
+import { uploadDocument } from "../documents/api";
+
+const ACCEPTED_EXTENSIONS = ".txt,.md,.pdf,.docx";
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -24,17 +27,28 @@ function todayReferenceAt(): string {
   return `${year}-${month}-${day}`;
 }
 
+/** Builds capture body with optional ``adjunts:`` file-name line. */
+export function buildCaptureBody(text: string, files: File[]): string {
+  const trimmed = text.trim();
+  if (files.length === 0) return trimmed;
+  const names = files.map((file) => file.name).join(", ");
+  const attachments = `adjunts: ${names}`;
+  return trimmed ? `${trimmed}\n\n${attachments}` : attachments;
+}
+
 /** Introduces Memo with inline capture and workspace shortcuts. */
 export function OverviewPage() {
   const [capture, setCapture] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const save = async () => {
-    const body = capture.trim();
+    const body = buildCaptureBody(capture, files);
     if (!body) {
-      setError("Escribe algo que quieras recordar.");
+      setError("Escribe algo que quieras recordar o adjunta un archivo.");
       setSuccess("");
       return;
     }
@@ -43,13 +57,29 @@ export function OverviewPage() {
     setSuccess("");
     try {
       await createCapture({ body, reference_at: todayReferenceAt() });
+      if (files.length > 0) {
+        await Promise.all(files.map((file) => uploadDocument(file)));
+      }
       setCapture("");
+      setFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setSuccess("Recuerdo guardado.");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setSaving(false);
     }
+  };
+
+  const onFilesChosen = (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    setFiles((prev) => [...prev, ...Array.from(list)]);
+    setError("");
+    setSuccess("");
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -65,17 +95,76 @@ export function OverviewPage() {
           void save();
         }}
       >
-        <Icon name="edit" />
-        <label className="grow">
-          <span className="sr-only">¿Qué quieres recordar?</span>
-          <textarea
-            rows={2}
-            value={capture}
-            onChange={(e) => setCapture(e.target.value)}
-            placeholder="¿Qué quieres recordar?"
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="sr-only"
+          accept={ACCEPTED_EXTENSIONS}
+          multiple
+          disabled={saving}
+          onChange={(e) => {
+            onFilesChosen(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <div className="quick-capture-field grow">
+          <label>
+            <span className="sr-only">¿Qué quieres recordar?</span>
+            <textarea
+              rows={2}
+              value={capture}
+              onChange={(e) => setCapture(e.target.value)}
+              placeholder="¿Qué quieres recordar?"
+              disabled={saving}
+            />
+          </label>
+          {files.length > 0 && (
+            <ul className="quick-capture-files">
+              {files.map((file, index) => (
+                <li key={`${file.name}-${file.size}-${index}`}>
+                  <Icon name="file" />
+                  <span>{file.name}</span>
+                  <Button
+                    formAction="none"
+                    variant="icon"
+                    iconName="close"
+                    ariaLabel={`Quitar ${file.name}`}
+                    disabled={saving}
+                    onClick={() => removeFile(index)}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            className="quick-capture-attach"
+            aria-label="Adjuntar archivos"
             disabled={saving}
-          />
-        </label>
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Icon
+              ariaLabel="Adjuntar"
+              svg={
+                <svg
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  focusable="false"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M5.5 8.5v-4a2.5 2.5 0 0 1 5 0v5.5a4 4 0 0 1-8 0V5.75"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              }
+            />
+          </button>
+        </div>
         <Button formAction="submit" variant="primary" loading={saving}>
           Guardar recuerdo
         </Button>

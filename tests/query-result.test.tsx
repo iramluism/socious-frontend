@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   presentQueryHit,
+  hitsAfterForget,
+  isCaptureHit,
   EMPTY_EXCERPT,
 } from "../src/features/query/presentation";
 import { QueryResultCard } from "../src/features/query/QueryResultCard";
@@ -25,6 +27,25 @@ const chunk: QueryHit = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("query result presentation", () => {
+  it("classifies capture hits and drops a whole document source on forget", () => {
+    const capture: QueryHit = {
+      ...chunk,
+      id: "capture-1",
+      kind: "memo/capture",
+      source: "capture:1",
+    };
+    const other: QueryHit = { ...chunk, id: "keep", source: "drive:other" };
+    const sibling: QueryHit = { ...chunk, id: "sib" };
+    expect(isCaptureHit(capture)).toBe(true);
+    expect(isCaptureHit(chunk)).toBe(false);
+    expect(
+      hitsAfterForget([chunk, sibling, other], chunk).map((item) => item.id),
+    ).toEqual(["keep"]);
+    expect(
+      hitsAfterForget([capture, other], capture).map((item) => item.id),
+    ).toEqual(["keep"]);
+  });
+
   it("presents the supplied separator chunk without inventing labels or a link", () => {
     expect(presentQueryHit(chunk, "caché")).toMatchObject({
       title: "Contrato de caché a respetar",
@@ -36,6 +57,15 @@ describe("query result presentation", () => {
     });
   });
   it("uses heading priority and bounded meaningful text before source fallbacks", () => {
+    expect(
+      presentQueryHit(
+        {
+          ...chunk,
+          metadata: { ...chunk.metadata, headline: "Informe trimestral" },
+        },
+        "",
+      ).title,
+    ).toBe("Informe trimestral");
     expect(
       presentQueryHit({ ...chunk, metadata: { heading_1: "Plan" } }, "").title,
     ).toBe("Plan");
@@ -141,7 +171,68 @@ describe("query result interactions", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
-  it("supports keyboard details and disabled forgetting without network side effects", async () => {
+  it("asks before forgetting an external document and skips the request on cancel", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(<QueryResultCard hit={chunk} query="" />);
+    await user.click(screen.getByRole("button", { name: /Acciones para/ }));
+    await user.click(
+      screen.getByRole("menuitem", { name: /Olvidar recuerdo/ }),
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText("Se elimina el documento entero"),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("forgets a personal capture without a document warning", async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+    const onForgotten = vi.fn();
+    const user = userEvent.setup();
+    const capture: QueryHit = {
+      ...chunk,
+      id: "capture-11111111-1111-1111-1111-111111111111",
+      source: "capture:11111111-1111-1111-1111-111111111111",
+      kind: "memo/capture",
+      metadata: {},
+      text: "Nota personal",
+    };
+    render(
+      <QueryResultCard hit={capture} query="" onForgotten={onForgotten} />,
+    );
+    await user.click(screen.getByRole("button", { name: /Acciones para/ }));
+    await user.click(
+      screen.getByRole("menuitem", { name: /Olvidar recuerdo/ }),
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(onForgotten).toHaveBeenCalledWith(capture));
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      "/captures/capture-11111111-1111-1111-1111-111111111111",
+    );
+    expect(fetch.mock.calls[0]?.[1]).toMatchObject({ method: "DELETE" });
+  });
+
+  it("confirms forgetting an external source then deletes the memory", async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+    const onForgotten = vi.fn();
+    const user = userEvent.setup();
+    render(<QueryResultCard hit={chunk} query="" onForgotten={onForgotten} />);
+    await user.click(screen.getByRole("button", { name: /Acciones para/ }));
+    await user.click(
+      screen.getByRole("menuitem", { name: /Olvidar recuerdo/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Olvidar documento" }));
+    await waitFor(() => expect(onForgotten).toHaveBeenCalledWith(chunk));
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(`/captures/${chunk.id}`);
+  });
+
+  it("supports keyboard details without network side effects", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const user = userEvent.setup();
@@ -149,12 +240,6 @@ describe("query result interactions", () => {
     const trigger = screen.getByRole("button", { name: /Acciones para/ });
     trigger.focus();
     await user.keyboard("{Enter}");
-    const forget = screen.getByRole("menuitem", { name: /Olvidar recuerdo/ });
-    expect(forget).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByText("Todavía no disponible")).toBeInTheDocument();
-    await user.click(forget);
-    expect(fetch).not.toHaveBeenCalled();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("menuitem", { name: "Ver detalles" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Plan de caché")).toBeInTheDocument();

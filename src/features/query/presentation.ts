@@ -2,6 +2,59 @@ import { excerpt } from "./search";
 import type { QueryHit } from "./types";
 
 export const EMPTY_EXCERPT = "Este fragmento no contiene texto descriptivo";
+export const CAPTURE_KIND = "memo/capture";
+
+/**
+ * Whether the hit is a user capture rather than an ingested document.
+ *
+ * Parameters
+ * ----------
+ * hit : QueryHit
+ *     Semantic search fragment.
+ *
+ * Returns
+ * -------
+ * boolean
+ *     ``true`` when ``kind`` is ``memo/capture`` or ``source`` starts with
+ *     ``capture:``.
+ */
+export function isCaptureHit(hit: QueryHit): boolean {
+  if (hit.kind === CAPTURE_KIND) return true;
+  return typeof hit.source === "string" && hit.source.startsWith("capture:");
+}
+
+/**
+ * Hits that should remain after forgetting ``forgotten``.
+ *
+ * Captures are removed by id. Other hits drop every fragment with the same
+ * ``source`` (the whole document).
+ *
+ * Parameters
+ * ----------
+ * hits : readonly QueryHit[]
+ *     Current result list.
+ * forgotten : QueryHit
+ *     Hit that was successfully forgotten.
+ *
+ * Returns
+ * -------
+ * QueryHit[]
+ *     Remaining hits.
+ */
+export function hitsAfterForget(
+  hits: readonly QueryHit[],
+  forgotten: QueryHit,
+): QueryHit[] {
+  return hits.filter((item) => {
+    if (isCaptureHit(forgotten) || isCaptureHit(item)) {
+      return item.id !== forgotten.id;
+    }
+    if (forgotten.source == null || forgotten.source === "") {
+      return item.id !== forgotten.id;
+    }
+    return String(item.source) !== String(forgotten.source);
+  });
+}
 
 function textValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -57,12 +110,27 @@ function savedDate(value: unknown): string | undefined {
   }).format(calendarDate);
 }
 
-/** Maps retrieval data into readable content without synthesizing facts or links. */
+/**
+ * Maps retrieval data into readable content without synthesizing facts or links.
+ *
+ * Parameters
+ * ----------
+ * hit : QueryHit
+ *     Semantic search fragment.
+ * query : string
+ *     User query used to center the excerpt.
+ *
+ * Returns
+ * -------
+ * object
+ *     Title, provenance, excerpt, optional date, labels, link, and headings.
+ */
 export function presentQueryHit(hit: QueryHit, query: string) {
   const source = typeof hit.source === "string" ? hit.source : "";
   const isDrive = source.startsWith("drive:");
-  const isCapture = source.startsWith("capture:");
+  const isCapture = isCaptureHit(hit);
   const lines = meaningfulLines(hit.text);
+  const headline = textValue(hit.metadata.headline);
   const heading1 = textValue(hit.metadata.heading_1);
   const heading2 = textValue(hit.metadata.heading_2);
   const fallback = isDrive
@@ -73,6 +141,7 @@ export function presentQueryHit(hit: QueryHit, query: string) {
   const firstLine = lines[0]?.replace(/^#{1,6}\s+/, "");
   return {
     title:
+      headline ??
       heading2 ??
       heading1 ??
       (firstLine ? Array.from(firstLine).slice(0, 100).join("") : fallback),

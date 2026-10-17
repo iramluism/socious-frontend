@@ -48,10 +48,45 @@ describe("navigable demo", () => {
     await waitFor(() => expect(api.captures).toHaveLength(1));
     expect(api.captures[0].body).toBe("Reunión con el equipo del telescopio");
     expect(api.captures[0].reference_at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(api.uploadedDocuments).toHaveLength(0);
     expect(screen.getByText("Recuerdo guardado.")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("¿Qué quieres recordar?")).toHaveValue(
       "",
     );
+  });
+
+  it("saves a capture with attachments and uploads each document", async () => {
+    const api = mockMemoQueryAndCaptureFetch();
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.type(
+      screen.getByPlaceholderText("¿Qué quieres recordar?"),
+      "Notas de la reunión",
+    );
+    expect(
+      screen.getByRole("button", { name: "Adjuntar archivos" }),
+    ).toBeInTheDocument();
+    const fileInput = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    expect(fileInput).toBeTruthy();
+    const notes = new File(["hola"], "notas.md", { type: "text/markdown" });
+    const brief = new File(["pdf"], "brief.pdf", { type: "application/pdf" });
+    await user.upload(fileInput, [notes, brief]);
+
+    expect(screen.getByText("notas.md")).toBeInTheDocument();
+    expect(screen.getByText("brief.pdf")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Guardar recuerdo" }));
+
+    await waitFor(() => expect(api.captures).toHaveLength(1));
+    expect(api.captures[0].body).toBe(
+      "Notas de la reunión\n\nadjunts: notas.md, brief.pdf",
+    );
+    await waitFor(() => expect(api.uploadedDocuments).toEqual(["notas.md", "brief.pdf"]));
+    expect(screen.getByText("Recuerdo guardado.")).toBeInTheDocument();
+    expect(screen.queryByText("notas.md")).not.toBeInTheDocument();
   });
 
   it("queries the API and restores text plus labels from history", async () => {

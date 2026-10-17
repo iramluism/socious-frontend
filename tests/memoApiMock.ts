@@ -1,8 +1,5 @@
 import { vi } from "vitest";
-import {
-  connections,
-  googleOAuthKinds,
-} from "./fixtures/connections";
+import { connections, googleOAuthKinds } from "./fixtures/connections";
 import { ambitoLabels, classifiers } from "./fixtures/classifiers";
 import type { Capture } from "../src/features/captures/types";
 import type { QueryHit, QueryResponse } from "../src/features/query/types";
@@ -25,7 +22,8 @@ export function mockMemoConnectionsFetch(): void {
       if (url.includes("/oauth-apps/") && method === "GET") {
         return jsonResponse({
           family: "google_oauth2",
-          redirect_uri: "http://127.0.0.1:8000/api/v1/memo/oauth/google/callback",
+          redirect_uri:
+            "http://127.0.0.1:8000/api/v1/memo/oauth/google/callback",
           client_id_masked: "demo…id",
           client_secret_masked: null,
           configured: true,
@@ -77,7 +75,9 @@ export function mockMemoClassifiersFetch(): void {
 
       const labelsMatch = url.match(/\/classifiers\/(\d+)\/labels/);
       if (labelsMatch && method === "GET") {
-        return jsonResponse(labelsByClassifier.get(Number(labelsMatch[1])) ?? []);
+        return jsonResponse(
+          labelsByClassifier.get(Number(labelsMatch[1])) ?? [],
+        );
       }
       if (labelsMatch && method === "POST") {
         const classifierId = Number(labelsMatch[1]);
@@ -143,12 +143,18 @@ export function mockMemoQueryAndCaptureFetch(
   options: {
     queryResults?: QueryHit[];
     captureFail?: boolean;
+    forgetFail?: boolean;
+    documentFail?: boolean;
   } = {},
 ): {
   captures: Capture[];
+  forgottenIds: string[];
+  uploadedDocuments: string[];
   lastQueryBody: () => Record<string, unknown> | null;
 } {
   const captures: Capture[] = [];
+  const forgottenIds: string[] = [];
+  const uploadedDocuments: string[] = [];
   let lastQueryBody: Record<string, unknown> | null = null;
   const registry: Classifier[] = classifiers.map((item) => ({ ...item }));
   const labelsByClassifier = new Map<number, Label[]>([
@@ -187,6 +193,18 @@ export function mockMemoQueryAndCaptureFetch(
         return jsonResponse(response);
       }
 
+      const forgetMatch = url.match(/\/captures\/([^/?]+)$/);
+      if (forgetMatch && method === "DELETE") {
+        if (options.forgetFail) {
+          return jsonResponse(
+            { code: "chunk_not_found", message: "Fragmento no encontrado" },
+            404,
+          );
+        }
+        forgottenIds.push(decodeURIComponent(forgetMatch[1]));
+        return new Response(null, { status: 204 });
+      }
+
       if (url.endsWith("/captures") && method === "POST") {
         if (options.captureFail) {
           return jsonResponse(
@@ -205,9 +223,26 @@ export function mockMemoQueryAndCaptureFetch(
         return jsonResponse(created, 201);
       }
 
+      if (url.endsWith("/documents") && method === "POST") {
+        if (options.documentFail) {
+          return jsonResponse(
+            { code: "invalid_document", message: "Documento inválido" },
+            422,
+          );
+        }
+        const filename = formDataFileName(init?.body);
+        uploadedDocuments.push(filename);
+        return jsonResponse(
+          { task_id: crypto.randomUUID(), status: "accepted" },
+          202,
+        );
+      }
+
       const labelsMatch = url.match(/\/classifiers\/(\d+)\/labels/);
       if (labelsMatch && method === "GET") {
-        return jsonResponse(labelsByClassifier.get(Number(labelsMatch[1])) ?? []);
+        return jsonResponse(
+          labelsByClassifier.get(Number(labelsMatch[1])) ?? [],
+        );
       }
       if (url.endsWith("/classifiers") && method === "GET") {
         return jsonResponse(registry);
@@ -222,8 +257,19 @@ export function mockMemoQueryAndCaptureFetch(
 
   return {
     captures,
+    forgottenIds,
+    uploadedDocuments,
     lastQueryBody: () => lastQueryBody,
   };
+}
+
+function formDataFileName(body: BodyInit | null | undefined): string {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    const file = body.get("file");
+    if (file instanceof File) return file.name;
+    if (typeof file === "string" && file) return file;
+  }
+  return "unknown";
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

@@ -83,4 +83,39 @@ describe("query result integration", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
+
+  it("removes every fragment of a forgotten external source", async () => {
+    const api = mockMemoQueryAndCaptureFetch({
+      queryResults: [
+        hit("doc-1", "Mismo documento A"),
+        hit("doc-2", "Mismo documento B"),
+        { ...hit("other-1", "Otra fuente"), source: "drive:other" },
+      ],
+    });
+    window.location.hash = "/query";
+    render(<App />);
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText("¿Qué quieres encontrar?"),
+      "consulta",
+    );
+    await user.click(screen.getByRole("button", { name: "Consultar" }));
+    expect(await screen.findAllByRole("article")).toHaveLength(3);
+    const first = screen.getAllByRole("article")[0];
+    await user.click(
+      within(first).getByRole("button", { name: /Acciones para/ }),
+    );
+    await user.click(
+      screen.getByRole("menuitem", { name: /Olvidar recuerdo/ }),
+    );
+    await user.click(screen.getByRole("button", { name: "Olvidar documento" }));
+    await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(1));
+    expect(
+      screen.getByRole("heading", { name: "Otra fuente" }),
+    ).toBeInTheDocument();
+    expect(api.forgottenIds).toEqual(["doc-1"]);
+    expect(
+      screen.getByRole("heading", { name: "Información relacionada 1" }),
+    ).toBeInTheDocument();
+  });
 });
