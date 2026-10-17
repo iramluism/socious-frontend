@@ -20,7 +20,8 @@ export function SettingsPage() {
           Desde Resumen puedes guardar un recuerdo con{" "}
           <code>POST /captures</code>. Query usa búsqueda semántica (
           <code>POST /query</code>) y permite filtrar por labels de los
-          calificadores activos.
+          calificadores activos. La memoria indexada es la Collection del
+          usuario autenticado; no se elige en esta UI.
         </p>
         <p className="muted">Socious · Memo / 0.1</p>
       </section>

@@ -1,6 +1,6 @@
 # Socious · Memo
 
-Demo navegable en React y TypeScript: consola de memoria personal inspirada en AWS y tema grafito PyCharm. Recuerdos, Query y catálogos usan datos en memoria de sesión. **Conexiones**, **Fuentes de datos** y **Calificadores** consumen la API real de Memo en Socius.
+Demo navegable en React y TypeScript: consola de memoria personal inspirada en AWS y tema grafito PyCharm. Recuerdos, Query y catálogos usan datos en memoria de sesión. **Cuenta**, **Conexiones**, **Fuentes de datos** y **Calificadores** consumen Socius. El registro crea la Collection del usuario en el backend; el SPA no lista ni envía `collection_id` — las llamadas Memo van con JWT.
 
 ## Arranque
 

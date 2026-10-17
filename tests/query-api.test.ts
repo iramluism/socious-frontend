@@ -21,6 +21,7 @@ describe("query and capture API clients", () => {
       labels: ["Laboral"],
       top_k: 5,
     });
+    expect(api.lastQueryBody()).not.toHaveProperty("collection_id");
   });
 
   it("posts capture body and reference date", async () => {
