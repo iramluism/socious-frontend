@@ -27,6 +27,33 @@ export const driveBrowseRoot = {
       id: "folder-projects",
       name: "Proyectos",
       mime_type: "application/vnd.google-apps.folder",
+      modified_time: "2026-10-12T09:30:00.000Z",
+      drive_id: null,
+    },
+  ],
+  next_page_token: null,
+};
+
+export const driveSharedDrives = {
+  items: [
+    {
+      id: "shared-team",
+      name: "Equipo producto",
+      modified_time: "2026-09-01T08:00:00.000Z",
+    },
+  ],
+  next_page_token: null,
+};
+
+export const driveBrowseSharedRoot = {
+  parent_id: "shared-team",
+  items: [
+    {
+      id: "folder-shared-docs",
+      name: "Documentos compartidos",
+      mime_type: "application/vnd.google-apps.folder",
+      modified_time: "2026-10-08T14:00:00.000Z",
+      drive_id: "shared-team",
     },
   ],
   next_page_token: null,

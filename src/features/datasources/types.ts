@@ -43,12 +43,27 @@ export interface DriveFolderItem {
   id: string;
   name: string;
   mime_type: string;
+  modified_time: string | null;
+  drive_id: string | null;
 }
 
 /** Paginated Drive folder listing for picker UIs. */
 export interface DriveBrowseResponse {
   parent_id: string;
   items: DriveFolderItem[];
+  next_page_token: string | null;
+}
+
+/** One shared drive (unidad compartida). */
+export interface DriveSharedDriveItem {
+  id: string;
+  name: string;
+  modified_time: string | null;
+}
+
+/** Paginated shared-drive listing. */
+export interface DriveDrivesResponse {
+  items: DriveSharedDriveItem[];
   next_page_token: string | null;
 }
 

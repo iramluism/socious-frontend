@@ -3,9 +3,14 @@ import {
   browseDriveFolders,
   createDataSource,
   listDataSources,
+  listDriveDrives,
   syncDataSource,
 } from "../src/features/datasources/api";
-import { dataSources, driveBrowseRoot } from "./fixtures/dataSources";
+import {
+  dataSources,
+  driveBrowseRoot,
+  driveSharedDrives,
+} from "./fixtures/dataSources";
 
 const originalFetch = globalThis.fetch;
 
@@ -62,6 +67,42 @@ describe("datasources api", () => {
       .calls[0][0] as string;
     expect(calledUrl).toContain("/google/drive/browse");
     expect(calledUrl).toContain("parent_id=root");
+  });
+
+  it("browses a shared drive when drive_id is set", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(driveBrowseRoot), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await browseDriveFolders(
+      "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "shared-team",
+      undefined,
+      "shared-team",
+    );
+    const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as string;
+    expect(calledUrl).toContain("parent_id=shared-team");
+    expect(calledUrl).toContain("drive_id=shared-team");
+  });
+
+  it("lists shared drives under a connection", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(driveSharedDrives), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(
+      listDriveDrives("b2c3d4e5-f6a7-8901-bcde-f12345678901"),
+    ).resolves.toEqual(driveSharedDrives);
+    const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as string;
+    expect(calledUrl).toContain("/google/drive/drives");
   });
 
   it("sync returns task id", async () => {

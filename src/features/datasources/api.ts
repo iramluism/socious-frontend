@@ -3,6 +3,7 @@ import type {
   CreateDataSourceRequest,
   DataSource,
   DriveBrowseResponse,
+  DriveDrivesResponse,
   SyncAcceptedResponse,
   UpdateDataSourceRequest,
 } from "./types";
@@ -58,12 +59,33 @@ export function browseDriveFolders(
   connectionId: string,
   parentId = "root",
   pageToken?: string,
+  driveId?: string,
 ): Promise<DriveBrowseResponse> {
   const params = new URLSearchParams({ parent_id: parentId });
   if (pageToken) {
     params.set("page_token", pageToken);
   }
+  if (driveId) {
+    params.set("drive_id", driveId);
+  }
   return memoFetch<DriveBrowseResponse>(
     `/connections/${encodeURIComponent(connectionId)}/google/drive/browse?${params.toString()}`,
+  );
+}
+
+/** Lists shared drives for a connection (folder picker). */
+export function listDriveDrives(
+  connectionId: string,
+  pageToken?: string,
+): Promise<DriveDrivesResponse> {
+  const params = new URLSearchParams();
+  if (pageToken) {
+    params.set("page_token", pageToken);
+  }
+  const query = params.toString();
+  return memoFetch<DriveDrivesResponse>(
+    `/connections/${encodeURIComponent(connectionId)}/google/drive/drives${
+      query ? `?${query}` : ""
+    }`,
   );
 }

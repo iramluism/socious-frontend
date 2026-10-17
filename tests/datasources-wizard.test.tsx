@@ -4,7 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { DataSourceWizardPage } from "../src/features/datasources/DataSourceWizardPage";
 import { connections, googleOAuthKinds } from "./fixtures/connections";
-import { driveBrowseRoot } from "./fixtures/dataSources";
+import {
+  driveBrowseRoot,
+  driveBrowseSharedRoot,
+  driveSharedDrives,
+} from "./fixtures/dataSources";
 
 function renderWizard() {
   return render(
@@ -44,7 +48,8 @@ describe("DataSource wizard", () => {
         if (
           url.includes("/connections") &&
           method === "GET" &&
-          !url.includes("/google/drive/browse")
+          !url.includes("/google/drive/browse") &&
+          !url.includes("/google/drive/drives")
         ) {
           return json(connections);
         }
@@ -121,13 +126,19 @@ describe("DataSource wizard", () => {
         if (url.includes("/kinds")) {
           return json(googleOAuthKinds);
         }
+        if (url.includes("/google/drive/drives")) {
+          return json(driveSharedDrives);
+        }
         if (url.includes("/google/drive/browse")) {
-          return json(driveBrowseRoot);
+          return json(
+            url.includes("drive_id=") ? driveBrowseSharedRoot : driveBrowseRoot,
+          );
         }
         if (
           url.includes("/connections") &&
           method === "GET" &&
-          !url.includes("/google/drive/browse")
+          !url.includes("/google/drive/browse") &&
+          !url.includes("/google/drive/drives")
         ) {
           return json(connections);
         }
@@ -192,6 +203,85 @@ describe("DataSource wizard", () => {
     expect(createBody?.config).toMatchObject({
       folder_ids: ["folder-projects"],
     });
+  });
+
+  it("lists shared drives and filters folders by name", async () => {
+    const user = userEvent.setup();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : input.url;
+        const method = (init?.method ?? "GET").toUpperCase();
+
+        if (url.includes("/kinds")) {
+          return json(googleOAuthKinds);
+        }
+        if (url.includes("/google/drive/drives")) {
+          return json(driveSharedDrives);
+        }
+        if (url.includes("/google/drive/browse")) {
+          return json(
+            url.includes("drive_id=") ? driveBrowseSharedRoot : driveBrowseRoot,
+          );
+        }
+        if (url.includes("/connections") && method === "GET") {
+          return json(connections);
+        }
+        return json({ code: "unexpected", message: url }, 500);
+      }),
+    );
+
+    window.location.hash = "#/datasources/nueva";
+    renderWizard();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Google Drive/i })).toBeEnabled(),
+    );
+    await user.click(screen.getByRole("button", { name: /Google Drive/i }));
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+    await user.type(screen.getByLabelText(/Nombre/), "Drive docs");
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+    const driveRadio = await waitFor(() => {
+      const match = screen
+        .getAllByRole("radio")
+        .find((node) =>
+          node.closest("label")?.textContent?.includes("Drive de trabajo"),
+        );
+      if (!match) {
+        throw new Error("radio Drive de trabajo no encontrado");
+      }
+      return match;
+    });
+    await user.click(driveRadio);
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Proyectos/ })).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/oct 2026/i)).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText(/Buscar carpeta/), "xyz");
+    expect(screen.queryByRole("button", { name: /Proyectos/ })).not.toBeInTheDocument();
+    await user.clear(screen.getByPlaceholderText(/Buscar carpeta/));
+
+    await user.click(screen.getByRole("tab", { name: "Unidades compartidas" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Equipo producto/ })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: /Equipo producto/ }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /Documentos compartidos/ }),
+      ).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: "Seleccionar" }));
+    expect(screen.getByText("Documentos compartidos")).toBeInTheDocument();
   });
 });
 

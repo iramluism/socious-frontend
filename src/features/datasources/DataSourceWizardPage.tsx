@@ -242,7 +242,7 @@ export function DataSourceWizardPage() {
       description: "Nombre visible y si la fuente está activa.",
       content: (
         <div className="form-stack">
-          <label>
+          <label className="form-field-narrow">
             Nombre <span className="required">*</span>
             <input
               value={name}
@@ -273,10 +273,14 @@ export function DataSourceWizardPage() {
           ) : (
             <fieldset className="connections-kind-fieldset">
               <legend className="connections-kind-legend">Conexiones disponibles</legend>
-              <ul className="drive-browse-list">
+              <ul className="ds-connection-list">
                 {compatibleConnections.map((item) => (
-                  <li key={item.id} className="drive-browse-row">
-                    <label className="ds-connection-option">
+                  <li key={item.id}>
+                    <label
+                      className={`ds-connection-option${
+                        connectionId === item.id ? " is-selected" : ""
+                      }`}
+                    >
                       <input
                         type="radio"
                         name="connection"
@@ -284,10 +288,9 @@ export function DataSourceWizardPage() {
                         disabled={submitting}
                         onChange={() => setConnectionId(item.id)}
                       />
-                      <span>
+                      <span className="ds-connection-copy">
                         <strong>{item.display_name}</strong>
-                        <br />
-                        <span className="muted">
+                        <span className="muted ds-connection-meta">
                           {item.external_account_id ?? item.id}
                         </span>
                       </span>

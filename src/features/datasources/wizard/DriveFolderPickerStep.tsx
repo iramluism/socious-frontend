@@ -1,14 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@cloudscape-design/components/alert";
 import Button from "@cloudscape-design/components/button";
 import SpaceBetween from "@cloudscape-design/components/space-between";
 import StatusIndicator from "@cloudscape-design/components/status-indicator";
 import { ApiError } from "../../../shared/api/client";
-import { browseDriveFolders } from "../api";
-import type { DriveDataSourceConfig, DriveFolderItem } from "../types";
+import { formatDate } from "../../../shared/PageHeading";
+import { browseDriveFolders, listDriveDrives } from "../api";
+import type {
+  DriveDataSourceConfig,
+  DriveFolderItem,
+  DriveSharedDriveItem,
+} from "../types";
 
 const ROOT_ID = "root";
 const ROOT_LABEL = "Mi unidad";
+const SHARED_ROOT_LABEL = "Unidades compartidas";
+
+type BrowseTab = "my_drive" | "shared";
+type BrowseRow = {
+  id: string;
+  name: string;
+  modified_time: string | null;
+  kind: "folder" | "drive";
+};
 
 function normalizeFolderId(raw: string): string {
   const trimmed = raw.trim();
@@ -34,6 +48,14 @@ function errorMessage(error: unknown): string {
   return "Error inesperado";
 }
 
+function matchesFilter(name: string, filter: string): boolean {
+  const needle = filter.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+  return name.toLowerCase().includes(needle);
+}
+
 /**
  * Browse Google Drive folders and build ``folder_ids`` for Drive data sources.
  */
@@ -48,20 +70,26 @@ export function DriveFolderPickerStep({
   disabled?: boolean;
   onChange: (next: DriveDataSourceConfig) => void;
 }) {
+  const [tab, setTab] = useState<BrowseTab>("my_drive");
   const [trail, setTrail] = useState<Breadcrumb[]>([
     { id: ROOT_ID, name: ROOT_LABEL },
   ]);
-  const [items, setItems] = useState<DriveFolderItem[]>([]);
+  const [items, setItems] = useState<BrowseRow[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState("");
+  const [activeDriveId, setActiveDriveId] = useState<string | null>(null);
 
-  const parentId = trail[trail.length - 1]?.id ?? ROOT_ID;
+  const listingDrives = tab === "shared" && activeDriveId === null;
+  const parentId = listingDrives
+    ? ""
+    : (trail[trail.length - 1]?.id ?? (tab === "my_drive" ? ROOT_ID : ""));
 
-  const loadPage = useCallback(
-    async (parent: string, pageToken?: string, append = false) => {
+  const loadFolders = useCallback(
+    async (parent: string, pageToken?: string, append = false, driveId?: string) => {
       setLoading(true);
       setLoadError("");
       try {
@@ -69,10 +97,40 @@ export function DriveFolderPickerStep({
           connectionId,
           parent,
           pageToken,
+          driveId,
         );
-        setItems((current) =>
-          append ? [...current, ...page.items] : page.items,
-        );
+        const rows: BrowseRow[] = page.items.map((folder: DriveFolderItem) => ({
+          id: folder.id,
+          name: folder.name,
+          modified_time: folder.modified_time,
+          kind: "folder",
+        }));
+        setItems((current) => (append ? [...current, ...rows] : rows));
+        setNextPageToken(page.next_page_token);
+      } catch (err) {
+        setItems([]);
+        setNextPageToken(null);
+        setLoadError(errorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [connectionId],
+  );
+
+  const loadDrives = useCallback(
+    async (pageToken?: string, append = false) => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const page = await listDriveDrives(connectionId, pageToken);
+        const rows: BrowseRow[] = page.items.map((drive: DriveSharedDriveItem) => ({
+          id: drive.id,
+          name: drive.name,
+          modified_time: drive.modified_time,
+          kind: "drive",
+        }));
+        setItems((current) => (append ? [...current, ...rows] : rows));
         setNextPageToken(page.next_page_token);
       } catch (err) {
         setItems([]);
@@ -86,45 +144,98 @@ export function DriveFolderPickerStep({
   );
 
   useEffect(() => {
-    void loadPage(parentId);
-  }, [parentId, loadPage]);
+    if (listingDrives) {
+      void loadDrives();
+      return;
+    }
+    if (!parentId) {
+      return;
+    }
+    void loadFolders(parentId, undefined, false, activeDriveId ?? undefined);
+  }, [listingDrives, parentId, activeDriveId, loadDrives, loadFolders]);
 
   const selectedIds = config.folder_ids;
+  const visibleItems = useMemo(
+    () => items.filter((item) => matchesFilter(item.name, filter)),
+    [items, filter],
+  );
 
-  const toggleFolder = (folder: DriveFolderItem) => {
+  const switchTab = (next: BrowseTab) => {
+    if (disabled || next === tab) {
+      return;
+    }
+    setTab(next);
+    setFilter("");
+    setItems([]);
+    setNextPageToken(null);
+    setLoadError("");
+    if (next === "my_drive") {
+      setActiveDriveId(null);
+      setTrail([{ id: ROOT_ID, name: ROOT_LABEL }]);
+    } else {
+      setActiveDriveId(null);
+      setTrail([]);
+    }
+  };
+
+  const toggleRow = (row: BrowseRow) => {
     if (disabled) {
       return;
     }
-    const exists = selectedIds.includes(folder.id);
+    const exists = selectedIds.includes(row.id);
     const nextIds = exists
-      ? selectedIds.filter((id) => id !== folder.id)
-      : [...selectedIds, folder.id];
+      ? selectedIds.filter((id) => id !== row.id)
+      : [...selectedIds, row.id];
     setLabels((current) => ({
       ...current,
-      [folder.id]: folder.name,
+      [row.id]: row.name,
     }));
     onChange({ ...config, folder_ids: nextIds });
   };
 
-  const openFolder = (folder: DriveFolderItem) => {
+  const openRow = (row: BrowseRow) => {
     if (disabled) {
       return;
     }
-    setTrail((current) => [...current, { id: folder.id, name: folder.name }]);
+    if (row.kind === "drive") {
+      setActiveDriveId(row.id);
+      setTrail([{ id: row.id, name: row.name }]);
+      setFilter("");
+      return;
+    }
+    setTrail((current) => [...current, { id: row.id, name: row.name }]);
+    setFilter("");
   };
 
   const goToCrumb = (index: number) => {
     if (disabled) {
       return;
     }
+    if (tab === "shared" && index < 0) {
+      setActiveDriveId(null);
+      setTrail([]);
+      setFilter("");
+      return;
+    }
     setTrail((current) => current.slice(0, index + 1));
+    setFilter("");
   };
 
   const goUp = () => {
-    if (trail.length <= 1 || disabled) {
+    if (disabled) {
+      return;
+    }
+    if (tab === "shared" && trail.length <= 1) {
+      setActiveDriveId(null);
+      setTrail([]);
+      setFilter("");
+      return;
+    }
+    if (trail.length <= 1) {
       return;
     }
     setTrail((current) => current.slice(0, -1));
+    setFilter("");
   };
 
   const removeSelected = (folderId: string) => {
@@ -148,18 +259,75 @@ export function DriveFolderPickerStep({
     setManualInput("");
   };
 
+  const canGoUp =
+    tab === "my_drive" ? trail.length > 1 : !listingDrives;
+  const emptyCopy = listingDrives
+    ? "No hay unidades compartidas."
+    : "No hay subcarpetas en esta ruta.";
+
   return (
     <SpaceBetween size="m">
       {loadError ? <Alert type="error">{loadError}</Alert> : null}
+      <div className="form-stack">
+        <label>
+          Añadir por URL o id de carpeta
+          <div className="drive-browse-manual">
+            <input
+              value={manualInput}
+              disabled={disabled}
+              placeholder="https://drive.google.com/drive/folders/…"
+              onChange={(event) => setManualInput(event.target.value)}
+            />
+            <Button disabled={disabled || !manualInput.trim()} onClick={addManual}>
+              Añadir
+            </Button>
+          </div>
+        </label>
+      </div>
       <div className="drive-browse-layout">
         <section className="drive-browse-panel" aria-label="Explorar carpetas">
+          <div className="drive-browse-tabs" role="tablist" aria-label="Origen">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "my_drive"}
+              className={`drive-browse-tab${tab === "my_drive" ? " is-active" : ""}`}
+              disabled={disabled}
+              onClick={() => switchTab("my_drive")}
+            >
+              Mi unidad
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "shared"}
+              className={`drive-browse-tab${tab === "shared" ? " is-active" : ""}`}
+              disabled={disabled}
+              onClick={() => switchTab("shared")}
+            >
+              Unidades compartidas
+            </button>
+          </div>
           <div className="drive-browse-toolbar">
-            <Button disabled={disabled || trail.length <= 1} onClick={goUp}>
+            <Button disabled={disabled || !canGoUp} onClick={goUp}>
               Subir
             </Button>
             <nav className="drive-browse-breadcrumbs" aria-label="Ruta">
+              {tab === "shared" ? (
+                <span>
+                  <button
+                    type="button"
+                    className="drive-browse-crumb"
+                    disabled={disabled}
+                    onClick={() => goToCrumb(-1)}
+                  >
+                    {SHARED_ROOT_LABEL}
+                  </button>
+                  {trail.length > 0 ? <span className="muted"> / </span> : null}
+                </span>
+              ) : null}
               {trail.map((crumb, index) => (
-                <span key={crumb.id}>
+                <span key={`${crumb.id}-${index}`}>
                   {index > 0 ? <span className="muted"> / </span> : null}
                   <button
                     type="button"
@@ -173,28 +341,46 @@ export function DriveFolderPickerStep({
               ))}
             </nav>
           </div>
+          <label className="drive-browse-filter">
+            Filtrar
+            <input
+              value={filter}
+              disabled={disabled}
+              placeholder={listingDrives ? "Buscar unidad…" : "Buscar carpeta…"}
+              onChange={(event) => setFilter(event.target.value)}
+            />
+          </label>
           {loading && items.length === 0 ? (
-            <StatusIndicator type="loading">Cargando carpetas…</StatusIndicator>
-          ) : items.length === 0 ? (
-            <p className="demo-explainer muted">No hay subcarpetas en esta ruta.</p>
+            <StatusIndicator type="loading">
+              {listingDrives ? "Cargando unidades…" : "Cargando carpetas…"}
+            </StatusIndicator>
+          ) : visibleItems.length === 0 ? (
+            <p className="demo-explainer muted">{emptyCopy}</p>
           ) : (
             <ul className="drive-browse-list">
-              {items.map((folder) => {
-                const selected = selectedIds.includes(folder.id);
+              {visibleItems.map((row) => {
+                const selected = selectedIds.includes(row.id);
                 return (
-                  <li key={folder.id} className="drive-browse-row">
+                  <li key={row.id} className="drive-browse-row">
                     <button
                       type="button"
                       className="drive-browse-open"
                       disabled={disabled}
-                      onClick={() => openFolder(folder)}
-                      title="Abrir carpeta"
+                      onClick={() => openRow(row)}
+                      title={row.kind === "drive" ? "Abrir unidad" : "Abrir carpeta"}
                     >
-                      📁 {folder.name}
+                      <span className="drive-browse-open-name">
+                        {row.kind === "drive" ? "🗂" : "📁"} {row.name}
+                      </span>
+                      {row.modified_time ? (
+                        <span className="drive-browse-date muted">
+                          {formatDate(row.modified_time)}
+                        </span>
+                      ) : null}
                     </button>
                     <Button
                       disabled={disabled}
-                      onClick={() => toggleFolder(folder)}
+                      onClick={() => toggleRow(row)}
                     >
                       {selected ? "Quitar" : "Seleccionar"}
                     </Button>
@@ -207,7 +393,16 @@ export function DriveFolderPickerStep({
             <Button
               loading={loading}
               disabled={disabled}
-              onClick={() => void loadPage(parentId, nextPageToken, true)}
+              onClick={() =>
+                listingDrives
+                  ? void loadDrives(nextPageToken, true)
+                  : void loadFolders(
+                      parentId,
+                      nextPageToken,
+                      true,
+                      activeDriveId ?? undefined,
+                    )
+              }
             >
               Cargar más
             </Button>
@@ -239,22 +434,6 @@ export function DriveFolderPickerStep({
             </ul>
           )}
         </section>
-      </div>
-      <div className="form-stack">
-        <label>
-          Añadir por URL o id de carpeta
-          <div className="drive-browse-manual">
-            <input
-              value={manualInput}
-              disabled={disabled}
-              placeholder="https://drive.google.com/drive/folders/…"
-              onChange={(event) => setManualInput(event.target.value)}
-            />
-            <Button disabled={disabled || !manualInput.trim()} onClick={addManual}>
-              Añadir
-            </Button>
-          </div>
-        </label>
       </div>
     </SpaceBetween>
   );
