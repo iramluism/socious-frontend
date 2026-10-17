@@ -61,7 +61,9 @@ describe("navigable demo", () => {
     render(<App />);
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Laboral" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("button", { name: "Laboral" }),
+      ).toBeInTheDocument(),
     );
     await user.type(
       screen.getByLabelText("¿Qué quieres encontrar?"),
@@ -71,7 +73,9 @@ describe("navigable demo", () => {
     await user.click(screen.getByRole("button", { name: "Consultar" }));
 
     await waitFor(() =>
-      expect(screen.getByText(/planificación del proyecto/)).toBeInTheDocument(),
+      expect(
+        screen.getByRole("heading", { name: /planificación del proyecto/ }),
+      ).toBeInTheDocument(),
     );
     expect(api.lastQueryBody()).toMatchObject({
       query: "telescopio",
@@ -147,7 +151,9 @@ describe("navigable demo", () => {
     expect(
       within(nav).queryByRole("link", { name: "Archivados" }),
     ).not.toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: "Query" })).toBeInTheDocument();
+    expect(
+      within(nav).getByRole("link", { name: "Query" }),
+    ).toBeInTheDocument();
   });
 
   it("navigates to Conexiones, filters the table and opens a detail", async () => {
@@ -209,15 +215,17 @@ describe("navigable demo", () => {
     expect(within(dialog).getByText(/Escribe un nombre/)).toBeInTheDocument();
     await user.type(within(dialog).getByLabelText(/Nombre/), "Prioridad");
     await user.type(within(dialog).getByLabelText("Nuevo label"), "Alta");
-    await user.click(within(dialog).getByRole("button", { name: "Añadir label" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Añadir label" }),
+    );
     await user.type(within(dialog).getByLabelText("Nuevo label"), "Baja");
-    await user.click(within(dialog).getByRole("button", { name: "Añadir label" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Añadir label" }),
+    );
     await user.click(
       within(dialog).getByRole("button", { name: "Crear calificador" }),
     );
-    await waitFor(() =>
-      expect(window.location.hash).toBe("#/calificadores/3"),
-    );
+    await waitFor(() => expect(window.location.hash).toBe("#/calificadores/3"));
     await waitFor(() =>
       expect(
         screen.getByRole("heading", { name: "Prioridad" }),

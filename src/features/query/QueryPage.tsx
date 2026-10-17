@@ -9,8 +9,10 @@ import { useDemo } from "../../app/DemoContext";
 import { listClassifiers, listLabels } from "../qualifiers/api";
 import type { Classifier, Label } from "../qualifiers/types";
 import { queryMemos } from "./api";
-import { excerpt, formatLabels } from "./search";
+import { formatLabels } from "./search";
 import type { QueryHit, QueryInput } from "./types";
+
+import { QueryResultCard } from "./QueryResultCard";
 
 type LabelOption = Label & { classifierName: string };
 
@@ -218,8 +220,10 @@ export function QueryPage() {
             <section aria-live="polite">
               <div className="section-heading">
                 <h2>
-                  Resultados{" "}
-                  <span className="count">{loading ? "…" : results.length}</span>
+                  Información relacionada{" "}
+                  <span className="count">
+                    {loading ? "…" : results.length}
+                  </span>
                 </h2>
                 <span className="muted">{formatLabels(submitted.labels)}</span>
               </div>
@@ -228,25 +232,12 @@ export function QueryPage() {
                   <p>Buscando…</p>
                 </div>
               ) : results.length ? (
-                results.map((hit, i) => (
-                  <article className="panel query-result" key={hit.id}>
-                    <div className="result-title">
-                      <span className="reference">{i + 1}</span>
-                      <h3>{String(hit.source ?? hit.id)}</h3>
-                      <span className="muted">
-                        distancia {hit.distance.toFixed(3)}
-                      </span>
-                    </div>
-                    <p>{excerpt(hit.text, submitted.text)}</p>
-                    <div className="metadata">
-                      {hit.kind != null && <span>{String(hit.kind)}</span>}
-                      {Object.values(hit.classifications).map((entry) => (
-                        <span key={`${hit.id}-${entry.label_id}`}>
-                          {entry.label_name}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
+                results.map((hit) => (
+                  <QueryResultCard
+                    key={hit.id}
+                    hit={hit}
+                    query={submitted.text}
+                  />
                 ))
               ) : (
                 <div className="panel empty">
@@ -260,7 +251,9 @@ export function QueryPage() {
             <div className="empty query-welcome">
               <Icon name="search" size="big" />
               <h2>El contexto empieza con una consulta</h2>
-              <p>Busca en lenguaje natural y filtra por los labels que quieras.</p>
+              <p>
+                Busca en lenguaje natural y filtra por los labels que quieras.
+              </p>
             </div>
           )}
         </section>
