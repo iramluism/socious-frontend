@@ -1,0 +1,4 @@
+services:
+  web:
+    ports:
+      - "${FRONTEND_HTTP_PORT:-8081}:80"

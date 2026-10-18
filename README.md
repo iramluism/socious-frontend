@@ -48,6 +48,8 @@ CHOKIDAR_USEPOLLING=1 WATCHPACK_POLLING=true npm run dev
 
 Distribución: `npm run build` y `npm run preview` (http://127.0.0.1:4173).
 
+Producción (nginx estático + Cloudflare Tunnel): ver [deploy/README.md](deploy/README.md). `make deploy` publica el build en http://127.0.0.1:8081; `make deploy-prod` añade `cloudflared` y no publica puertos en el host.
+
 ## Organización
 
 - `src/app`: rutas hash, shell, `DemoProvider` (recuerdos + historial Query).

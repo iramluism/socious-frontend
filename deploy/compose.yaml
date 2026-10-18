@@ -1,0 +1,19 @@
+name: socious-frontend
+
+services:
+  web:
+    container_name: socious_frontend_web
+    build:
+      context: ..
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        VITE_MEMO_API_BASE: ${VITE_MEMO_API_BASE:-/api/v1/memo}
+        VITE_AUTH_API_BASE: ${VITE_AUTH_API_BASE:-/api/v1/auth}
+        VITE_OAUTH_AUTHORIZE_ACTION: ${VITE_OAUTH_AUTHORIZE_ACTION:-/oauth/authorize}
+    restart: unless-stopped
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: socious_frontend_internal
