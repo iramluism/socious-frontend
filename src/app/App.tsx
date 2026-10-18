@@ -34,6 +34,7 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { SignUpPage } from "../features/auth/SignUpPage";
 import { OAuthAuthorizePage } from "../features/auth/OAuthAuthorizePage";
 import { OAuthCallbackPage } from "../features/auth/OAuthCallbackPage";
+import { SociousMark } from "../shared/brand/SociousMark";
 
 const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/", label: "Resumen", icon: "grid-view" },
@@ -80,8 +81,8 @@ function Shell() {
         >
           <Icon name="menu" />
         </button>
-        <Link to="/" className="brand">
-          Socious<span className="brand-dot">.</span>
+        <Link to="/" className="brand" aria-label="Socious">
+          <SociousMark className="brand-mark" />
         </Link>
         <span className="top-divider" />
         <ButtonDropdown

@@ -107,13 +107,20 @@ hr {
   z-index: 20;
 }
 .brand {
-  font-size: 27px;
-  font-weight: 650;
-  letter-spacing: -1px;
+  display: inline-flex;
+  align-items: center;
   color: #eef0f4;
+  line-height: 0;
 }
-.brand-dot {
-  color: #8ea6c8;
+.brand:hover {
+  text-decoration: none;
+  opacity: 0.92;
+}
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  display: block;
+  flex-shrink: 0;
 }
 .top-divider {
   height: 26px;
@@ -197,10 +204,15 @@ hr {
   padding: 0 24px;
 }
 .aws-auth-brand {
+  display: inline-flex;
+  align-items: center;
   color: #fff;
-  font-size: 18px;
-  font-weight: 650;
-  letter-spacing: -0.3px;
+  line-height: 0;
+}
+.aws-auth-brand-mark {
+  width: 36px;
+  height: 36px;
+  display: block;
 }
 .aws-auth-main {
   padding: 40px 16px 64px;
@@ -1277,8 +1289,9 @@ main {
   .global-search {
     margin: 0;
   }
-  .brand {
-    font-size: 22px;
+  .brand-mark {
+    width: 36px;
+    height: 36px;
   }
   .topbar {
     padding: 0 15px;
@@ -1301,8 +1314,9 @@ main {
     flex-wrap: wrap;
     gap: 9px;
   }
-  .brand {
-    font-size: 21px;
+  .brand-mark {
+    width: 34px;
+    height: 34px;
   }
   .top-divider {
     display: none;
