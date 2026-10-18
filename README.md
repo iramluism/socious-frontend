@@ -34,7 +34,9 @@ npm ci
 npm run dev
 ```
 
-Vite hace proxy de `/api` → `http://127.0.0.1:8000`, así el SPA llama rutas relativas sin CORS.
+Vite hace proxy de `/api` y `/oauth` (salvo el callback visual) hacia el backend, así el SPA llama rutas relativas sin CORS.
+
+OAuth para Postman/MCP: el Authorization Server redirige a `#/oauth/authorize`. Tras el login, el `redirect_uri` `http://127.0.0.1:5173/oauth/callback` cae en el HTML estático que reescribe a `#/oauth/callback` y muestra el `code`. En el backend, `AUTH_OAUTH_UI_URL` debe ser `http://127.0.0.1:5173/#/oauth/authorize` y esa URI de callback debe estar en `AUTH_OAUTH_REDIRECT_URIS`.
 
 Abre http://127.0.0.1:5173/#/conexiones para listar, crear conexión Google, abrir consentimiento y ver el detalle (sondeo hasta `active`).
 

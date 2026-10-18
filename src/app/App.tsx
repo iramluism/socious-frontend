@@ -32,6 +32,8 @@ import { SettingsPage } from "../features/settings/SettingsPage";
 import { AccountPage, usernameInitials } from "../features/auth/AccountPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { SignUpPage } from "../features/auth/SignUpPage";
+import { OAuthAuthorizePage } from "../features/auth/OAuthAuthorizePage";
+import { OAuthCallbackPage } from "../features/auth/OAuthCallbackPage";
 
 const navigation: { path: string; label: string; icon: IconProps.Name }[] = [
   { path: "/", label: "Resumen", icon: "grid-view" },
@@ -245,6 +247,8 @@ export function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/oauth/authorize" element={<OAuthAuthorizePage />} />
+            <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
             <Route
               path="*"
               element={
